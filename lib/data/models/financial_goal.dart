@@ -1,11 +1,11 @@
-class FinancialGoal {
+class FinancialGoalModel {
   final int? id;
   final String name;
   final double targetAmount;
   final double savedAmount;
   final String? deadline;
 
-  FinancialGoal({
+  FinancialGoalModel({
     this.id,
     required this.name,
     required this.targetAmount,
@@ -23,8 +23,8 @@ class FinancialGoal {
     };
   }
 
-  factory FinancialGoal.fromMap(Map<String, dynamic> map) {
-    return FinancialGoal(
+  factory FinancialGoalModel.fromMap(Map<String, dynamic> map) {
+    return FinancialGoalModel(
       id: map['id'],
       name: map['name'],
       targetAmount: map['target_amount'],

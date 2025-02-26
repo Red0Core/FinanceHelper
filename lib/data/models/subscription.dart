@@ -1,11 +1,11 @@
-class Subscription {
+class SubscriptionModel {
   final int? id;
   final String name;
   final double amount;
   final String renewalDate;
   final int cardId;
 
-  Subscription({
+  SubscriptionModel({
     this.id,
     required this.name,
     required this.amount,
@@ -23,8 +23,8 @@ class Subscription {
     };
   }
 
-  factory Subscription.fromMap(Map<String, dynamic> map) {
-    return Subscription(
+  factory SubscriptionModel.fromMap(Map<String, dynamic> map) {
+    return SubscriptionModel(
       id: map['id'],
       name: map['name'],
       amount: map['amount'],

@@ -2,16 +2,16 @@ import '../database.dart';
 import '../models/transaction.dart';
 
 class TransactionDao {
-  Future<int> insertTransaction(Transaction transaction) async {
+  Future<int> insertTransaction(TransactionModel transaction) async {
     final db = await AppDatabase.instance.database;
     return await db.insert('transactions', transaction.toMap());
   }
 
-  Future<List<Transaction>> getAllTransactions() async {
+  Future<List<TransactionModel>> getAllTransactions() async {
     final db = await AppDatabase.instance.database;
     final List<Map<String, dynamic>> maps = await db.query('transactions');
     return List.generate(maps.length, (i) {
-      return Transaction.fromMap(maps[i]);
+      return TransactionModel.fromMap(maps[i]);
     });
   }
 
@@ -21,6 +21,16 @@ class TransactionDao {
       'transactions',
       where: 'id = ?',
       whereArgs: [id],
+    );
+  }
+
+  Future<int> updateTransaction(TransactionModel transaction) async {
+    final db = await AppDatabase.instance.database;
+    return await db.update(
+      'transactions',
+      transaction.toMap(),
+      where: 'id = ?',
+      whereArgs: [transaction.id],
     );
   }
 }

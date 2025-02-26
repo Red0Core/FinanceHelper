@@ -1,4 +1,4 @@
-class Transaction {
+class TransactionModel {
   final int? id;
   final double amount;
   final String category;
@@ -6,7 +6,7 @@ class Transaction {
   final String type;
   final int cardId;
 
-  Transaction({
+  TransactionModel({
     this.id,
     required this.amount,
     required this.category,
@@ -26,8 +26,8 @@ class Transaction {
     };
   }
 
-  factory Transaction.fromMap(Map<String, dynamic> map) {
-    return Transaction(
+  factory TransactionModel.fromMap(Map<String, dynamic> map) {
+    return TransactionModel(
       id: map['id'],
       amount: map['amount'],
       category: map['category'],

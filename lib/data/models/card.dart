@@ -1,10 +1,10 @@
-class Card {
+class CardModel {
   final int? id;
   final String name;
   final double balance;
   final String? cashback;
 
-  Card({
+  CardModel({
     this.id,
     required this.name,
     required this.balance,
@@ -20,8 +20,8 @@ class Card {
     };
   }
 
-  factory Card.fromMap(Map<String, dynamic> map) {
-    return Card(
+  factory CardModel.fromMap(Map<String, dynamic> map) {
+    return CardModel(
       id: map['id'],
       name: map['name'],
       balance: map['balance'],
