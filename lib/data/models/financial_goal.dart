@@ -3,7 +3,7 @@ class FinancialGoalModel {
   final String name;
   final double targetAmount;
   final double savedAmount;
-  final String? deadline;
+  final DateTime? deadline;
 
   FinancialGoalModel({
     this.id,
@@ -19,7 +19,7 @@ class FinancialGoalModel {
       'name': name,
       'target_amount': targetAmount,
       'saved_amount': savedAmount,
-      'deadline': deadline,
+      'deadline': deadline?.toIso8601String(),
     };
   }
 
@@ -29,7 +29,7 @@ class FinancialGoalModel {
       name: map['name'],
       targetAmount: map['target_amount'],
       savedAmount: map['saved_amount'],
-      deadline: map['deadline'],
+      deadline: DateTime.tryParse(map['deadline']),
     );
   }
 }

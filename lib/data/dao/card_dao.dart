@@ -1,32 +1,28 @@
-import '../database.dart';
-import '../models/card.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:finance_helper/data/models/card.dart';
 
 class CardDao {
-  Future<int> insertCard(CardModel card) async {
-    final db = await AppDatabase.instance.database;
-    return await db.insert('cards', card.toMap());
+  final Database db;
+
+  CardDao(this.db);
+
+  Future<void> insertCard(CardModel card) async {
+    await db.insert(
+      'cards',
+      card.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   Future<List<CardModel>> getAllCards() async {
-    final db = await AppDatabase.instance.database;
     final List<Map<String, dynamic>> maps = await db.query('cards');
     return List.generate(maps.length, (i) {
       return CardModel.fromMap(maps[i]);
     });
   }
 
-  Future<int> deleteCard(int id) async {
-    final db = await AppDatabase.instance.database;
-    return await db.delete(
-      'cards',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-  }
-
-  Future<int> updateCard(CardModel card) async {
-    final db = await AppDatabase.instance.database;
-    return await db.update(
+  Future<void> updateCard(CardModel card) async {
+    await db.update(
       'cards',
       card.toMap(),
       where: 'id = ?',
@@ -34,4 +30,11 @@ class CardDao {
     );
   }
 
+  Future<void> deleteCard(int id) async {
+    await db.delete(
+      'cards',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
 }

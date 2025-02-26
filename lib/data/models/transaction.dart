@@ -2,7 +2,7 @@ class TransactionModel {
   final int? id;
   final double amount;
   final String category;
-  final String date;
+  final DateTime date;
   final String type;
   final int cardId;
 
@@ -20,7 +20,7 @@ class TransactionModel {
       'id': id,
       'amount': amount,
       'category': category,
-      'date': date,
+      'date': date.toIso8601String(),
       'type': type,
       'card_id': cardId,
     };
@@ -31,7 +31,7 @@ class TransactionModel {
       id: map['id'],
       amount: map['amount'],
       category: map['category'],
-      date: map['date'],
+      date: DateTime.parse(map['date']),
       type: map['type'],
       cardId: map['card_id'],
     );

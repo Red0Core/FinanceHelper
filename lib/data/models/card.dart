@@ -1,22 +1,26 @@
 class CardModel {
   final int? id;
   final String name;
-  final double balance;
-  final String? cashback;
+  double balance;
 
   CardModel({
     this.id,
     required this.name,
     required this.balance,
-    this.cashback,
   });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || (other is CardModel && other.id == id);
+
+  @override
+  int get hashCode => id.hashCode;
 
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'name': name,
       'balance': balance,
-      'cashback': cashback,
     };
   }
 
@@ -25,7 +29,6 @@ class CardModel {
       id: map['id'],
       name: map['name'],
       balance: map['balance'],
-      cashback: map['cashback'],
     );
   }
 }

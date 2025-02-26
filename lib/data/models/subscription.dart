@@ -2,7 +2,7 @@ class SubscriptionModel {
   final int? id;
   final String name;
   final double amount;
-  final String renewalDate;
+  final DateTime renewalDate;
   final int cardId;
 
   SubscriptionModel({
@@ -18,7 +18,7 @@ class SubscriptionModel {
       'id': id,
       'name': name,
       'amount': amount,
-      'renewal_date': renewalDate,
+      'renewal_date': renewalDate.toIso8601String(),
       'card_id': cardId,
     };
   }
@@ -28,7 +28,7 @@ class SubscriptionModel {
       id: map['id'],
       name: map['name'],
       amount: map['amount'],
-      renewalDate: map['renewal_date'],
+      renewalDate: DateTime.parse(map['renewal_date']),
       cardId: map['card_id'],
     );
   }
