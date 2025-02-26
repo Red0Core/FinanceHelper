@@ -116,7 +116,7 @@ class HomeScreenState extends State<HomeScreen> {
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: ListTile(
                     title: Text("${card.name} (${card.id})", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    subtitle: Text('Баланс: ${NumberFormat.currency(locale: 'ru_RU', symbol: '₽').format(card.balance)}'),
+                    subtitle: Text('Баланс: ${NumberFormat.currency(symbol: '₽').format(card.balance)}'),
                     trailing: SizedBox(
                       width: 100,
                       child: Row(
