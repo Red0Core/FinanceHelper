@@ -31,7 +31,8 @@ class AppDatabase {
         category TEXT NOT NULL,
         date TEXT NOT NULL,
         type TEXT NOT NULL,
-        card_id INTEGER NOT NULL
+        card_id INTEGER NOT NULL,
+        FOREIGN KEY (card_id) REFERENCES cards (id) ON DELETE CASCADE
       )
     ''');
     await db.execute('''
@@ -48,7 +49,8 @@ class AppDatabase {
         name TEXT NOT NULL,
         amount REAL NOT NULL,
         renewal_date TEXT NOT NULL,
-        card_id INTEGER NOT NULL
+        card_id INTEGER NOT NULL,
+        FOREIGN KEY (card_id) REFERENCES cards (id) ON DELETE CASCADE
       )
     ''');
     await db.execute('''
@@ -60,6 +62,16 @@ class AppDatabase {
         deadline TEXT
       )
     ''');
+    await db.execute('''
+      CREATE TABLE cashback (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        cardId INTEGER NOT NULL,
+        category TEXT NOT NULL,
+        percentage REAL NOT NULL,
+        FOREIGN KEY (cardId) REFERENCES cards (id) ON DELETE CASCADE
+      )
+    ''');
+
   }
 
   Future<void> close() async {
