@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:finance_helper/data/models/transaction.dart';
 import 'package:finance_helper/data/models/card.dart';
 import 'package:finance_helper/data/database.dart';
+import 'package:finance_helper/data/models/cashback.dart';
 import 'show_transcation_bottom_sheet.dart';
 
 class TransactionsScreen extends StatefulWidget {
@@ -17,6 +18,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   List<TransactionModel> _transactions = [];
   List<CardModel> _cards = [];
   CardModel? _selectedCard;
+  String _selectedTransactionType = 'all';
+  List<CashbackModel> _cashbacks = [];
 
   @override
   void initState() {
@@ -43,6 +46,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   Future<void> _loadData() async {
     final transactions = await AppDatabase.instance.transactionDao.getAllTransactions();
     final cards = await AppDatabase.instance.cardDao.getAllCards();
+    final cashbacks = await AppDatabase.instance.cashbackDao.getAllCashbacks();
 
     transactions.sort((b, a) => a.date.compareTo(b.date));
 
@@ -53,12 +57,40 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     setState(() {
       _transactions = transactions;
       _cards = cards;
+      _cashbacks = cashbacks;
     });
   }
 
-  List<TransactionModel> _filteredTransactionsByCurrentCard() {
-    if (_selectedCard == null) return _transactions; // Если карта не выбрана, показываем все транзакции
-    return _transactions.where((t) => t.cardId == _selectedCard!.id).toList();
+  List<TransactionModel> _filteredTransactionsByCurrentCardAndType() {
+    return _transactions.where((t) {
+      // Фильтрация по карте, если карта выбрана
+      if (_selectedCard != null && t.cardId != _selectedCard!.id) {
+        return false;
+      }
+      
+      // Фильтрация по типу транзакции
+      if (_selectedTransactionType != 'all' && t.type != _selectedTransactionType) {
+        return false;
+      }
+      
+      return true;
+    }).toList();
+  }
+
+  void _checkCashbackOptimization(TransactionModel transaction) {
+    final relevantCashbacks = _cashbacks.where((c) => c.category == transaction.category).toList();
+    if (relevantCashbacks.isNotEmpty) {
+      final bestCashback = relevantCashbacks.reduce((a, b) => a.percentage > b.percentage ? a : b);
+      if (bestCashback.cardId != transaction.cardId) {
+        final betterCard = _cards.firstWhere((c) => c.id == bestCashback.cardId);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Лучше использовать карту ${betterCard.name} для этой транзакции (кешбек ${bestCashback.percentage}%)'),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -77,33 +109,52 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           if (_cards.isNotEmpty)
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: DropdownButton<CardModel?>(
-                value: _selectedCard,
-                hint: const Text('Выберите карту'),
-                onChanged: (newCard) {
-                  setState(() {
-                    _selectedCard = newCard;
-                  });
-                },
-                items: [
-                  const DropdownMenuItem<CardModel?>(
-                    value: null,
-                    child: Text('Все карты'),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  DropdownButton<CardModel?>(
+                    value: _selectedCard,
+                    hint: const Text('Выберите карту'),
+                    onChanged: (newCard) {
+                      setState(() {
+                      _selectedCard = newCard;
+                      });
+                    },
+                    items: [
+                      const DropdownMenuItem<CardModel?>(
+                      value: null,
+                      child: Text('Все карты'),
+                      ),
+                      ..._cards.map((card) {
+                      return DropdownMenuItem<CardModel?>(
+                        value: card,
+                        child: Text(card.name),
+                      );
+                      }),
+                    ],
                   ),
-                  ..._cards.map((card) {
-                    return DropdownMenuItem<CardModel?>(
-                      value: card,
-                      child: Text(card.name),
-                    );
-                  }),
+                  const SizedBox(width: 16),
+                  DropdownButton<String>(
+                    value: _selectedTransactionType,
+                    onChanged: (String? newValue) {
+                      setState(() {
+                      _selectedTransactionType = newValue!;
+                      });
+                    },
+                    items: [
+                      DropdownMenuItem(value: 'all', child: Text('Все')),
+                      DropdownMenuItem(value: 'income', child: Text('Доход')),
+                      DropdownMenuItem(value: 'expense', child: Text('Расход')),
+                    ],
+                  ),
                 ],
               ),
             ),
           Expanded(
             child: ListView.builder(
-              itemCount: _filteredTransactionsByCurrentCard().length,
+              itemCount: _filteredTransactionsByCurrentCardAndType().length,
               itemBuilder: (context, index) {
-                final transaction = _filteredTransactionsByCurrentCard()[index];
+                final transaction = _filteredTransactionsByCurrentCardAndType()[index];
                 return Card(
                   elevation: 4,
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -120,12 +171,15 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           ),
                           IconButton(
                             icon: const Icon(Icons.edit, color: Colors.blue),
-                            onPressed: () => showTransactionBottomSheet(
-                              context,
-                              transaction,
-                              _cards,
-                              _loadData,
-                            ),
+                            onPressed: () {
+                              showTransactionBottomSheet(
+                                context,
+                                transaction,
+                                _cards,
+                                _loadData,
+                              );
+                              _checkCashbackOptimization(transaction);
+                            }
                           ),
                         ],
                       ),

@@ -41,4 +41,11 @@ class CashbackDao {
       whereArgs: [id],
     );
   }
+
+  Future<List<CashbackModel>> getAllCashbacks() async {
+    final List<Map<String, dynamic>> maps = await db.query('cashback');
+    return List.generate(maps.length, (i) {
+      return CashbackModel.fromMap(maps[i]);
+    });
+  }
 }
