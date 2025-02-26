@@ -105,7 +105,7 @@ class HomeScreenState extends State<HomeScreen> {
       : Column(
         children: [
           _cards.isEmpty
-          ? const Center(child: Text("Нет карт"))
+          ? const Expanded(child: Center(child: Text("Нет карт")))
           : Expanded(
             child: ListView.builder(
               itemCount: _cards.length,
@@ -149,6 +149,11 @@ class HomeScreenState extends State<HomeScreen> {
                 ElevatedButton(
                   onPressed: () => context.go('/transactions'),
                   child: const Text('Перейти к транзакциям'),
+                ),
+                const SizedBox(height: 10),
+                ElevatedButton(
+                  onPressed: () => context.go('/cashback'),
+                  child: const Text('Перейти к кешбекам'),
                 ),
               ],
             ),

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:finance_helper/features/home/home_screen.dart';
 import 'package:finance_helper/features/transactions/transactions_screen.dart';
+import 'package:finance_helper/features/cashback/cashback_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,6 +42,10 @@ final GoRouter _router = GoRouter(
     GoRoute(
       path: '/transactions',
       builder: (context, state) => const TransactionsScreen(),
+    ),
+    GoRoute(
+      path: '/cashback',
+      builder: (context, state) => const CashbackScreen()
     ),
   ],
 );

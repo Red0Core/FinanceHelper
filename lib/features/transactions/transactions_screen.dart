@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import 'package:finance_helper/data/models/transaction.dart';
 import 'package:finance_helper/data/models/card.dart';
 import 'package:finance_helper/data/database.dart';
-import 'package:finance_helper/data/models/cashback.dart';
 import 'show_transcation_bottom_sheet.dart';
 
 class TransactionsScreen extends StatefulWidget {
@@ -19,7 +18,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   List<CardModel> _cards = [];
   CardModel? _selectedCard;
   String _selectedTransactionType = 'all';
-  List<CashbackModel> _cashbacks = [];
 
   @override
   void initState() {
@@ -46,7 +44,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   Future<void> _loadData() async {
     final transactions = await AppDatabase.instance.transactionDao.getAllTransactions();
     final cards = await AppDatabase.instance.cardDao.getAllCards();
-    final cashbacks = await AppDatabase.instance.cashbackDao.getAllCashbacks();
 
     transactions.sort((b, a) => a.date.compareTo(b.date));
 
@@ -57,7 +54,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     setState(() {
       _transactions = transactions;
       _cards = cards;
-      _cashbacks = cashbacks;
     });
   }
 
@@ -75,22 +71,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       
       return true;
     }).toList();
-  }
-
-  void _checkCashbackOptimization(TransactionModel transaction) {
-    final relevantCashbacks = _cashbacks.where((c) => c.category == transaction.category).toList();
-    if (relevantCashbacks.isNotEmpty) {
-      final bestCashback = relevantCashbacks.reduce((a, b) => a.percentage > b.percentage ? a : b);
-      if (bestCashback.cardId != transaction.cardId) {
-        final betterCard = _cards.firstWhere((c) => c.id == bestCashback.cardId);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Лучше использовать карту ${betterCard.name} для этой транзакции (кешбек ${bestCashback.percentage}%)'),
-            duration: const Duration(seconds: 4),
-          ),
-        );
-      }
-    }
   }
 
   @override
@@ -171,15 +151,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           ),
                           IconButton(
                             icon: const Icon(Icons.edit, color: Colors.blue),
-                            onPressed: () {
-                              showTransactionBottomSheet(
-                                context,
-                                transaction,
-                                _cards,
-                                _loadData,
-                              );
-                              _checkCashbackOptimization(transaction);
-                            }
+                            onPressed: () => showTransactionBottomSheet(
+                              context,
+                              transaction,
+                              _cards,
+                              _loadData,
+                            )
                           ),
                         ],
                       ),

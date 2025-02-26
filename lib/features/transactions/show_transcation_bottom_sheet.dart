@@ -1,3 +1,4 @@
+// lib/features/transactions/show_transaction_bottom_sheet.dart
 import 'package:finance_helper/data/database.dart';
 import 'package:flutter/material.dart';
 import 'package:finance_helper/data/models/transaction.dart';
@@ -17,10 +18,28 @@ Future<void> showTransactionBottomSheet(
       : null;
   String transactionType = transaction?.type ?? 'expense';
 
+  Future<void> checkCashbackOptimization(TransactionModel transaction) async {
+    final relevantCashbacks = (await AppDatabase.instance.cashbackDao.getAllCashbacks()).where((c) => c.category == transaction.category).toList();
+    if (relevantCashbacks.isNotEmpty) {
+      final bestCashback = relevantCashbacks.reduce((a, b) => a.percentage > b.percentage ? a : b);
+      if (bestCashback.cardId != transaction.cardId) {
+        final betterCard = cards.firstWhere((c) => c.id == bestCashback.cardId);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Лучше использовать карту ${betterCard.name} для этой транзакции (кешбек ${bestCashback.percentage}%)'),
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
+      }
+    }
+  }
+
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
-    shape: RoundedRectangleBorder(
+    shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
     ),
     builder: (context) => Padding(
@@ -35,7 +54,7 @@ Future<void> showTransactionBottomSheet(
         children: [
           Text(
             transaction == null ? 'Добавить транзакцию' : 'Редактировать транзакцию',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           TextField(
@@ -122,7 +141,7 @@ Future<void> showTransactionBottomSheet(
                     amount: double.tryParse(amountController.text) ?? 0.0,
                     category: categoryController.text,
                     date: transaction?.date ?? DateTime.now(),
-                    type: transaction?.type ?? 'expense',
+                    type: transactionType,
                     cardId: selectedCard!.id!,
                   );
 
@@ -135,6 +154,7 @@ Future<void> showTransactionBottomSheet(
                   await onTransactionUpdated();
                   if (context.mounted) {
                     Navigator.pop(context);
+                    checkCashbackOptimization(newTransaction);
                   }
                 },
                 child: const Text('Сохранить'),

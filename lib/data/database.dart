@@ -38,7 +38,7 @@ class AppDatabase {
     final path = p.join(dbPath, filePath);
     return await openDatabase(
       path,
-      version: 2,
+      version: 1,
       onCreate: _createDB,
     );
   }
