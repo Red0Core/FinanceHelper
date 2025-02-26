@@ -1,5 +1,10 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
+import 'package:finance_helper/data/dao/card_dao.dart';
+import 'package:finance_helper/data/dao/transaction_dao.dart';
+import 'package:finance_helper/data/dao/cashback_dao.dart';
+import 'package:finance_helper/data/dao/subscription_dao.dart';
+import 'package:finance_helper/data/dao/financial_goal_dao.dart';
 
 class AppDatabase {
   static final AppDatabase instance = AppDatabase._init();
@@ -7,10 +12,25 @@ class AppDatabase {
 
   AppDatabase._init();
 
+  late final CardDao cardDao;
+  late final TransactionDao transactionDao;
+  late final CashbackDao cashbackDao;
+  late final SubscriptionDao subscriptionDao;
+  late final FinancialGoalDao financialGoalDao;
+
   Future<Database> get database async {
     if (_database != null) return _database!;
     _database = await _initDB('finance.db');
+    _initializeDaos();
     return _database!;
+  }
+
+  void _initializeDaos() {
+    cardDao = CardDao(_database!);
+    transactionDao = TransactionDao(_database!);
+    cashbackDao = CashbackDao(_database!);
+    subscriptionDao = SubscriptionDao(_database!);
+    financialGoalDao = FinancialGoalDao(_database!);
   }
 
   Future<Database> _initDB(String filePath) async {
@@ -18,7 +38,7 @@ class AppDatabase {
     final path = p.join(dbPath, filePath);
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _createDB,
     );
   }
