@@ -36,14 +36,17 @@ final GoRouter _router = GoRouter(
   initialLocation: '/',
   routes: [
     GoRoute(
+      name: 'home',
       path: '/',
       builder: (context, state) => const HomeScreen(),
     ),
     GoRoute(
+      name: 'transactions',
       path: '/transactions',
       builder: (context, state) => const TransactionsScreen(),
     ),
     GoRoute(
+      name: 'cashback',
       path: '/cashback',
       builder: (context, state) => const CashbackScreen()
     ),

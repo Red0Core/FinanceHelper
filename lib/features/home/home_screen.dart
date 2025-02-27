@@ -147,12 +147,12 @@ class HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 10),
                 ElevatedButton(
-                  onPressed: () => context.go('/transactions'),
+                  onPressed: () => context.goNamed('transactions'),
                   child: const Text('Перейти к транзакциям'),
                 ),
                 const SizedBox(height: 10),
                 ElevatedButton(
-                  onPressed: () => context.go('/cashback'),
+                  onPressed: () => context.goNamed('cashback'),
                   child: const Text('Перейти к кешбекам'),
                 ),
               ],

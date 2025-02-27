@@ -184,7 +184,7 @@ class _CashbackScreenState extends State<CashbackScreen> {
         title: const Text('Кешбеки'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/'),
+          onPressed: () => context.goNamed('home'),
         )
       ),
       body: ListView.builder(
