@@ -37,9 +37,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
     transactions.sort((b, a) => a.date.compareTo(b.date));
 
-    _transactions = transactions;
-    _filteredTransactions = _filterTransactionByCardAndType(_transactions, _selectedCard, _selectedTransactionType);
-    _cards = cards;
+    setState(() {
+      _transactions = transactions;
+      _filteredTransactions = _filterTransactionByCardAndType(_transactions, _selectedCard, _selectedTransactionType);
+      _cards = cards;
+    });
   }
   
   List<TransactionModel> _filterTransactionByCardAndType(
