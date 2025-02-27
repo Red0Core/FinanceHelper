@@ -1,9 +1,29 @@
+enum TransactionType {
+  all('all'),
+  income('income'),
+  expense('expense');
+
+  final String value;
+  const TransactionType(this.value);
+
+  factory TransactionType.fromString(String value) {
+    switch (value) {
+      case 'income':
+        return TransactionType.income;
+      case 'expense':
+        return TransactionType.expense;
+      default:
+        return TransactionType.all;
+    }
+  }
+}
+
 class TransactionModel {
   final int? id;
   final double amount;
   final String category;
   final DateTime date;
-  final String type;
+  final TransactionType type;
   final int cardId;
 
   TransactionModel({
@@ -21,7 +41,7 @@ class TransactionModel {
       'amount': amount,
       'category': category,
       'date': date.toIso8601String(),
-      'type': type,
+      'type': type.value,
       'card_id': cardId,
     };
   }
@@ -32,9 +52,8 @@ class TransactionModel {
       amount: map['amount'],
       category: map['category'],
       date: DateTime.parse(map['date']),
-      type: map['type'],
+      type: TransactionType.fromString(map['type']),
       cardId: map['card_id'],
     );
   }
 }
-

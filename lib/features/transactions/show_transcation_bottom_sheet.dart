@@ -16,7 +16,7 @@ Future<void> showTransactionBottomSheet(
   CardModel? selectedCard = transaction != null
       ? cards.firstWhere((c) => c.id == transaction.cardId)
       : null;
-  String transactionType = transaction?.type ?? 'expense';
+  TransactionType transactionType = transaction?.type ?? TransactionType.expense;
 
   Future<void> checkCashbackOptimization(TransactionModel transaction) async {
     final relevantCashbacks = (await AppDatabase.instance.cashbackDao.getAllCashbacks()).where((c) => c.category == transaction.category).toList();
@@ -95,20 +95,20 @@ Future<void> showTransactionBottomSheet(
                 children: [
                   ChoiceChip(
                     label: const Text('Расход'),
-                    selected: transactionType == 'expense',
+                    selected: transactionType == TransactionType.expense,
                     onSelected: (selected) {
                       setStateDialog(() {
-                        transactionType = 'expense';
+                        transactionType = TransactionType.expense;
                       });
                     },
                   ),
                   const SizedBox(width: 12),
                   ChoiceChip(
                     label: const Text('Доход'),
-                    selected: transactionType == 'income',
+                    selected: transactionType == TransactionType.income,
                     onSelected: (selected) {
                       setStateDialog(() {
-                        transactionType = 'income';
+                        transactionType = TransactionType.income;
                       });
                     },
                   ),

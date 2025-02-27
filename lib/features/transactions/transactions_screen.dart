@@ -17,17 +17,20 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   List<TransactionModel> _transactions = [];
   List<CardModel> _cards = [];
   CardModel? _selectedCard;
-  String _selectedTransactionType = 'all';
+  TransactionType _selectedTransactionType = TransactionType.all;
 
   @override
   void initState() {
     super.initState();
-    _loadData();
   }
 
   Future<void> _deleteTransaction(int id) async {
     await AppDatabase.instance.transactionDao.deleteTransaction(id);
-    final transactions = await AppDatabase.instance.transactionDao.getAllTransactions();
+    final transactions = _filterTransactionByCardAndType(
+      await AppDatabase.instance.transactionDao.getAllTransactions(),
+      _selectedCard,
+      _selectedTransactionType
+    );
     setState(() {
       _transactions = transactions;
     });
@@ -36,7 +39,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   double _calculateCardBalance(int cardId, List<TransactionModel> transactions) {
     double balance = 0.0;
     for (var transaction in transactions.where((t) => t.cardId == cardId)) {
-      balance += transaction.type == 'income' ? transaction.amount : -transaction.amount;
+      balance += transaction.type == TransactionType.income ? transaction.amount : -transaction.amount;
     }
     return balance;
   }
@@ -56,16 +59,20 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
       _cards = cards;
     });
   }
-
-  List<TransactionModel> _filteredTransactionsByCurrentCardAndType() {
-    return _transactions.where((t) {
+  
+  List<TransactionModel> _filterTransactionByCardAndType(
+    List<TransactionModel> transactions,
+    CardModel? card,
+    TransactionType transactionType
+  ) {
+    return transactions.where((t) {
       // Фильтрация по карте, если карта выбрана
-      if (_selectedCard != null && t.cardId != _selectedCard!.id) {
+      if (card != null && t.cardId != card.id) {
         return false;
       }
       
       // Фильтрация по типу транзакции
-      if (_selectedTransactionType != 'all' && t.type != _selectedTransactionType) {
+      if (transactionType != TransactionType.all && t.type != transactionType) {
         return false;
       }
       
@@ -84,89 +91,100 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           onPressed: () => context.go('/'),
         ),
       ),
-      body: Column(
-        children: [
-          if (_cards.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  DropdownButton<CardModel?>(
-                    value: _selectedCard,
-                    hint: const Text('Выберите карту'),
-                    onChanged: (newCard) {
-                      setState(() {
-                      _selectedCard = newCard;
-                      });
-                    },
-                    items: [
-                      const DropdownMenuItem<CardModel?>(
-                      value: null,
-                      child: Text('Все карты'),
-                      ),
-                      ..._cards.map((card) {
-                      return DropdownMenuItem<CardModel?>(
-                        value: card,
-                        child: Text(card.name),
-                      );
-                      }),
-                    ],
-                  ),
-                  const SizedBox(width: 16),
-                  DropdownButton<String>(
-                    value: _selectedTransactionType,
-                    onChanged: (String? newValue) {
-                      setState(() {
-                      _selectedTransactionType = newValue!;
-                      });
-                    },
-                    items: [
-                      DropdownMenuItem(value: 'all', child: Text('Все')),
-                      DropdownMenuItem(value: 'income', child: Text('Доход')),
-                      DropdownMenuItem(value: 'expense', child: Text('Расход')),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: _filteredTransactionsByCurrentCardAndType().length,
-              itemBuilder: (context, index) {
-                final transaction = _filteredTransactionsByCurrentCardAndType()[index];
-                return Card(
-                  elevation: 4,
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: ListTile(
-                    title: Text(transaction.category, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    subtitle: Text('${NumberFormat.currency(symbol: '₽').format(transaction.amount)} (${transaction.cardId}) • ${DateFormat("dd MMM yyy, HH:mm").format(transaction.date)}'),
-                    trailing: SizedBox(
-                      width: 100,
+      body: FutureBuilder<void>(
+        future: _loadData(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          } else {
+            return Column(
+              children: [
+                if (_cards.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
                       child: Row(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () => confirmDeleteTransaction(context, transaction.id!, () => _deleteTransaction(transaction.id!)),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.edit, color: Colors.blue),
-                            onPressed: () => showTransactionBottomSheet(
-                              context,
-                              transaction,
-                              _cards,
-                              _loadData,
-                            )
-                          ),
-                        ],
-                      ),
+                        mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        DropdownButton<CardModel?>(
+                          value: _selectedCard,
+                          hint: const Text('Выберите карту'),
+                          onChanged: (newCard) {
+                            setState(() {
+                            _selectedCard = newCard;
+                            });
+                          },
+                          items: [
+                            const DropdownMenuItem<CardModel?>(
+                            value: null,
+                            child: Text('Все карты'),
+                            ),
+                            ..._cards.map((card) {
+                            return DropdownMenuItem<CardModel?>(
+                              value: card,
+                              child: Text(card.name),
+                            );
+                            }),
+                          ],
+                        ),
+                        const SizedBox(width: 16),
+                        DropdownButton<TransactionType>(
+                          value: _selectedTransactionType,
+                          onChanged: (TransactionType? newValue) {
+                            setState(() {
+                            _selectedTransactionType = newValue!;
+                            });
+                          },
+                          items: [
+                            DropdownMenuItem(value: TransactionType.all, child: Text('Все')),
+                            DropdownMenuItem(value: TransactionType.income, child: Text('Доход')),
+                            DropdownMenuItem(value: TransactionType.expense, child: Text('Расход')),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                );
-              },
-            ),
-          ),
-        ],
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: _transactions.length,
+                    itemBuilder: (context, index) {
+                      final transaction = _transactions[index];
+                      return Card(
+                        elevation: 4,
+                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: ListTile(
+                          title: Text(transaction.category, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          subtitle: Text('${NumberFormat.currency(symbol: '₽').format(transaction.amount)} (${transaction.cardId}) • ${DateFormat("dd MMM yyy, HH:mm").format(transaction.date)}'),
+                          trailing: SizedBox(
+                            width: 100,
+                            child: Row(
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.delete, color: Colors.red),
+                                  onPressed: () => confirmDeleteTransaction(context, transaction.id!, () => _deleteTransaction(transaction.id!)),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.edit, color: Colors.blue),
+                                  onPressed: () => showTransactionBottomSheet(
+                                    context,
+                                    transaction,
+                                    _cards,
+                                    _loadData,
+                                  )
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          }
+        }
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => showTransactionBottomSheet(
