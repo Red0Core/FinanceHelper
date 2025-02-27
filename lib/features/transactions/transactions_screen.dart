@@ -28,22 +28,32 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   Future<void> _deleteTransaction(int id) async {
     await AppDatabase.instance.transactionDao.deleteTransaction(id);
-    await _loadData();
+    await _loadTransactions();
   }
 
-  Future<void> _loadData() async {
+  Future<void> _loadTransactions() async {
     final transactions = await AppDatabase.instance.transactionDao.getAllTransactions();
-    final cards = await AppDatabase.instance.cardDao.getAllCards();
 
     transactions.sort((b, a) => a.date.compareTo(b.date));
 
     setState(() {
       _transactions = transactions;
       _filteredTransactions = _filterTransactionByCardAndType(_transactions, _selectedCard, _selectedTransactionType);
-      _cards = cards;
     });
   }
   
+  Future<void> _loadCards() async {
+    final cards = await AppDatabase.instance.cardDao.getAllCards();
+    setState(() {
+      _cards = cards;
+    });
+  }
+
+  Future<void> _loadData() async {
+    await _loadCards(); // Load Cards first to populate the dropdown
+    await _loadTransactions();
+  }
+
   List<TransactionModel> _filterTransactionByCardAndType(
     List<TransactionModel> transactions,
     CardModel? card,
