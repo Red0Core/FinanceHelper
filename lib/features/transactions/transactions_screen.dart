@@ -15,6 +15,7 @@ class TransactionsScreen extends StatefulWidget {
 
 class _TransactionsScreenState extends State<TransactionsScreen> {
   List<TransactionModel> _transactions = [];
+  List<TransactionModel> _filteredTransactions = [];
   List<CardModel> _cards = [];
   CardModel? _selectedCard;
   TransactionType _selectedTransactionType = TransactionType.all;
@@ -22,11 +23,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   @override
   void initState() {
     super.initState();
+    _loadData();
   }
 
   Future<void> _deleteTransaction(int id) async {
     await AppDatabase.instance.transactionDao.deleteTransaction(id);
-    _loadData();
+    await _loadData();
   }
 
   Future<void> _loadData() async {
@@ -35,10 +37,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
     transactions.sort((b, a) => a.date.compareTo(b.date));
 
-    setState(() {
-      _transactions = transactions;
-      _cards = cards;
-    });
+    _transactions = transactions;
+    _filteredTransactions = _filterTransactionByCardAndType(_transactions, _selectedCard, _selectedTransactionType);
+    _cards = cards;
   }
   
   List<TransactionModel> _filterTransactionByCardAndType(
@@ -61,9 +62,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     }).toList();
   }
 
+  void _filterTransactions() {
+    setState(() { // Use setState here to trigger a rebuild of the ListView
+      _filteredTransactions = _filterTransactionByCardAndType(_transactions, _selectedCard, _selectedTransactionType);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final filteredTransactions = _filterTransactionByCardAndType(_transactions, _selectedCard, _selectedTransactionType);
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
@@ -73,15 +79,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           onPressed: () => context.goNamed('home'),
         ),
       ),
-      body: FutureBuilder<void>(
-        future: _loadData(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          } else {
-            return Column(
+      body: Column(
               children: [
                 if (_cards.isNotEmpty)
                   Padding(
@@ -95,12 +93,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           onChanged: (newCard) {
                             setState(() {
                             _selectedCard = newCard;
+                            _filterTransactions();
                             });
                           },
                           items: [
                             const DropdownMenuItem<CardModel?>(
-                            value: null,
-                            child: Text('Все карты'),
+                              value: null,
+                              child: Text('Все карты'),
                             ),
                             ..._cards.map((card) {
                             return DropdownMenuItem<CardModel?>(
@@ -116,12 +115,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           onChanged: (TransactionType? newValue) {
                             setState(() {
                             _selectedTransactionType = newValue!;
+                            _filterTransactions();
                             });
                           },
                           items: [
-                            DropdownMenuItem(value: TransactionType.all, child: Text('Все')),
-                            DropdownMenuItem(value: TransactionType.income, child: Text('Доход')),
-                            DropdownMenuItem(value: TransactionType.expense, child: Text('Расход')),
+                            const DropdownMenuItem(value: TransactionType.all, child: Text('Все')),
+                            const DropdownMenuItem(value: TransactionType.income, child: Text('Доход')),
+                            const DropdownMenuItem(value: TransactionType.expense, child: Text('Расход')),
                           ],
                         ),
                       ],
@@ -129,10 +129,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   ),
                 Expanded(
                   child: ListView.builder(
-                    itemCount: filteredTransactions.length,
+                    itemCount: _filteredTransactions.length,
                     itemBuilder: (context, index) {
-                      final transaction = filteredTransactions[index];
+                      final transaction = _filteredTransactions[index];
                       return Card(
+                        key: ValueKey(transaction.id),
                         elevation: 4,
                         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         child: ListTile(
@@ -164,10 +165,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   ),
                 ),
               ],
-            );
-          }
-        }
-      ),
+            ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => showTransactionBottomSheet(
           context,

@@ -14,6 +14,7 @@ class HomeScreen extends StatefulWidget {
 class HomeScreenState extends State<HomeScreen> {
   List<CardModel> _cards = [];
   Map<int, double> _cardBalances = {};
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -32,6 +33,7 @@ class HomeScreenState extends State<HomeScreen> {
     setState(() {
       _cards = cards;
       _cardBalances = balances;
+      _isLoading = false;
     });
   }
 
@@ -98,75 +100,66 @@ class HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: AppBar(title: const Text('Баланс')),
-      body: FutureBuilder<void>(
-        future: _loadCards(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          } else {
-            return Column(
-              children: [
-                _cards.isEmpty
-                ? const Expanded(child: Center(child: Text("Нет карт")))
-                : Expanded(
-                  child: ListView.builder(
-                    itemCount: _cards.length,
-                    itemBuilder: (context, index) {
-                      final card = _cards[index];
-                      return Card(
-                        elevation: 4,
-                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        child: ListTile(
-                          title: Text("${card.name} (${card.id})", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                          subtitle: Text('Баланс: ${NumberFormat.currency(symbol: '₽').format(_cardBalances[card.id])}'),
-                          trailing: SizedBox(
-                            width: 100,
-                            child: Row(
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.delete, color: Colors.red),
-                                  onPressed: () => _deleteCard(card.id!),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.edit, color: Colors.blue),
-                                  onPressed: () => _editCard(card),
-                                ),
-                              ],
+      body: _isLoading
+      ? const Center(child: CircularProgressIndicator())
+      : Column(
+          children: [
+            _cards.isEmpty
+            ? const Expanded(child: Center(child: Text("Нет карт")))
+            : Expanded(
+              child: ListView.builder(
+                itemCount: _cards.length,
+                itemBuilder: (context, index) {
+                  final card = _cards[index];
+                  return Card(
+                    elevation: 4,
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: ListTile(
+                      title: Text("${card.name} (${card.id})", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      subtitle: Text('Баланс: ${NumberFormat.currency(symbol: '₽').format(_cardBalances[card.id] ?? 0.0)}'),
+                      trailing: SizedBox(
+                        width: 100,
+                        child: Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () => _deleteCard(card.id!),
                             ),
-                          ),
+                            IconButton(
+                              icon: const Icon(Icons.edit, color: Colors.blue),
+                              onPressed: () => _editCard(card),
+                            ),
+                          ],
                         ),
-                      );
-                    },
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  ElevatedButton(
+                    onPressed: _addCard,
+                    child: const Text('Добавить карту'),
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      ElevatedButton(
-                        onPressed: _addCard,
-                        child: const Text('Добавить карту'),
-                      ),
-                      const SizedBox(height: 10),
-                      ElevatedButton(
-                        onPressed: () => context.goNamed('transactions'),
-                        child: const Text('Перейти к транзакциям'),
-                      ),
-                      const SizedBox(height: 10),
-                      ElevatedButton(
-                        onPressed: () => context.goNamed('cashback'),
-                        child: const Text('Перейти к кешбекам'),
-                      ),
-                    ],
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: () => context.goNamed('transactions'),
+                    child: const Text('Перейти к транзакциям'),
                   ),
-                ),
-              ],
-            );
-          }
-        },
-      ),
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: () => context.goNamed('cashback'),
+                    child: const Text('Перейти к кешбекам'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        )
     );
   }
 }
