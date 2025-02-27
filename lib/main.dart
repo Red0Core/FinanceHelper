@@ -39,6 +39,12 @@ final GoRouter _router = GoRouter(
       name: 'home',
       path: '/',
       builder: (context, state) => const HomeScreen(),
+      pageBuilder: (context, state) => CustomTransitionPage(
+        child: const HomeScreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+      ),
     ),
     GoRoute(
       name: 'transactions',
