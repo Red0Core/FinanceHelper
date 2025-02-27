@@ -1,12 +1,12 @@
+import 'package:finance_helper/data/database.dart';
+
 class CardModel {
   final int? id;
   final String name;
-  double balance;
 
   CardModel({
     this.id,
     required this.name,
-    required this.balance,
   });
 
   @override
@@ -16,11 +16,14 @@ class CardModel {
   @override
   int get hashCode => id.hashCode;
 
+  Future<double> get balance async {
+    return await AppDatabase.instance.transactionDao.getCardBalance(id!);
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'name': name,
-      'balance': balance,
     };
   }
 
@@ -28,7 +31,6 @@ class CardModel {
     return CardModel(
       id: map['id'],
       name: map['name'],
-      balance: map['balance'],
     );
   }
 }

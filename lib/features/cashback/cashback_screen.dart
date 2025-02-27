@@ -191,7 +191,7 @@ class _CashbackScreenState extends State<CashbackScreen> {
         itemCount: _cashbacks.length,
         itemBuilder: (context, index) {
           final cashback = _cashbacks[index];
-          final card = _cards.firstWhere((c) => c.id == cashback.cardId, orElse: () => CardModel(id: 0, name: 'Неизвестная карта', balance: 0));
+          final card = _cards.firstWhere((c) => c.id == cashback.cardId, orElse: () => CardModel(id: -1, name: 'Неизвестная карта'));
           return Card(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: ListTile(

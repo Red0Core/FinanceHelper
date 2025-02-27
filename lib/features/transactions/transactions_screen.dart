@@ -26,22 +26,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   Future<void> _deleteTransaction(int id) async {
     await AppDatabase.instance.transactionDao.deleteTransaction(id);
-    final transactions = _filterTransactionByCardAndType(
-      await AppDatabase.instance.transactionDao.getAllTransactions(),
-      _selectedCard,
-      _selectedTransactionType
-    );
-    setState(() {
-      _transactions = transactions;
-    });
-  }
-
-  double _calculateCardBalance(int cardId, List<TransactionModel> transactions) {
-    double balance = 0.0;
-    for (var transaction in transactions.where((t) => t.cardId == cardId)) {
-      balance += transaction.type == TransactionType.income ? transaction.amount : -transaction.amount;
-    }
-    return balance;
+    _loadData();
   }
 
   Future<void> _loadData() async {
@@ -50,10 +35,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
     transactions.sort((b, a) => a.date.compareTo(b.date));
 
-    for (var card in cards) {
-      card.balance = _calculateCardBalance(card.id!, transactions);
-      await AppDatabase.instance.cardDao.updateCard(card);
-    }
     setState(() {
       _transactions = transactions;
       _cards = cards;
@@ -82,13 +63,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final filteredTransactions = _filterTransactionByCardAndType(_transactions, _selectedCard, _selectedTransactionType);
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: const Text('Транзакции'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/'),
+          onPressed: () => context.goNamed('home'),
         ),
       ),
       body: FutureBuilder<void>(
@@ -147,9 +129,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   ),
                 Expanded(
                   child: ListView.builder(
-                    itemCount: _transactions.length,
+                    itemCount: filteredTransactions.length,
                     itemBuilder: (context, index) {
-                      final transaction = _transactions[index];
+                      final transaction = filteredTransactions[index];
                       return Card(
                         elevation: 4,
                         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

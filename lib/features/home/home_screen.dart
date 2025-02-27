@@ -31,7 +31,7 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _addCard() async {
-    await AppDatabase.instance.cardDao.insertCard(CardModel(name: 'Новая карта', balance: 1000.0));
+    await AppDatabase.instance.cardDao.insertCard(CardModel(name: 'Новая карта'));
     _loadCards();
   }
 
@@ -50,7 +50,6 @@ class HomeScreenState extends State<HomeScreen> {
 
   Future<void> _editCard(CardModel card) async {
     TextEditingController nameController = TextEditingController(text: card.name);
-    TextEditingController balanceController = TextEditingController(text: card.balance.toString());
 
     await showDialog(
       context: context,
@@ -62,11 +61,6 @@ class HomeScreenState extends State<HomeScreen> {
             TextField(
               controller: nameController,
               decoration: const InputDecoration(labelText: 'Название карты'),
-            ),
-            TextField(
-              controller: balanceController,
-              decoration: const InputDecoration(labelText: 'Баланс'),
-              keyboardType: TextInputType.number,
             ),
           ],
         ),
@@ -80,7 +74,6 @@ class HomeScreenState extends State<HomeScreen> {
               final updatedCard = CardModel(
                 id: card.id,
                 name: nameController.text,
-                balance: double.tryParse(balanceController.text) ?? card.balance,
               );
               await AppDatabase.instance.cardDao.updateCard(updatedCard);
               _loadCards();
