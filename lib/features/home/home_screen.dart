@@ -15,6 +15,7 @@ class HomeScreenState extends State<HomeScreen> {
   List<CardModel> _cards = [];
   Map<int, double> _cardBalances = {};
   bool _isLoading = true;
+  double _totalBalance = 0.0;
 
   @override
   void initState() {
@@ -25,8 +26,11 @@ class HomeScreenState extends State<HomeScreen> {
   Future<void> _loadCards() async {
     final cards = await AppDatabase.instance.cardDao.getAllCards();
     Map<int, double> balances = {};
+    double totalBalance = 0.0;
     for (var card in cards) {
-      balances[card.id!] = await card.balance;
+      final balance = await card.balance;
+      balances[card.id!] = balance;
+      totalBalance += balance;
     }
 
     if (!mounted) return;
@@ -34,6 +38,7 @@ class HomeScreenState extends State<HomeScreen> {
       _cards = cards;
       _cardBalances = balances;
       _isLoading = false;
+      _totalBalance = totalBalance;
     });
   }
 
@@ -99,11 +104,44 @@ class HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      appBar: AppBar(title: const Text('Баланс')),
+      appBar: AppBar(title: const Text('Кошелек')),
       body: _isLoading
       ? const Center(child: CircularProgressIndicator())
       : Column(
           children: [
+            Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Card(
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    color: Colors.blueAccent,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        children: [
+                          const Text(
+                            'Общий депозит',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            NumberFormat.currency(symbol: '₽').format(_totalBalance),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
             _cards.isEmpty
             ? const Expanded(child: Center(child: Text("Нет карт")))
             : Expanded(
@@ -114,8 +152,11 @@ class HomeScreenState extends State<HomeScreen> {
                   return Card(
                     elevation: 4,
                     margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     child: ListTile(
-                      title: Text("${card.name} (${card.id})", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      title: Text(card.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                       subtitle: Text('Баланс: ${NumberFormat.currency(symbol: '₽').format(_cardBalances[card.id] ?? 0.0)}'),
                       trailing: SizedBox(
                         width: 100,
@@ -137,29 +178,32 @@ class HomeScreenState extends State<HomeScreen> {
                 },
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  ElevatedButton(
-                    onPressed: _addCard,
-                    child: const Text('Добавить карту'),
-                  ),
-                  const SizedBox(height: 10),
-                  ElevatedButton(
-                    onPressed: () => context.goNamed('transactions'),
-                    child: const Text('Перейти к транзакциям'),
-                  ),
-                  const SizedBox(height: 10),
-                  ElevatedButton(
-                    onPressed: () => context.goNamed('cashback'),
-                    child: const Text('Перейти к кешбекам'),
-                  ),
-                ],
-              ),
-            ),
           ],
-        )
+        ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _addCard,
+        child: const Icon(Icons.add),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet), label: 'Кошелек'),
+          BottomNavigationBarItem(icon: Icon(Icons.receipt_long), label: 'Транзакции'),
+          BottomNavigationBarItem(icon: Icon(Icons.card_giftcard), label: 'Кешбек'),
+        ],
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              context.goNamed('home');
+              break;
+            case 1:
+              context.goNamed('transactions');
+              break;
+            case 2:
+              context.goNamed('cashback');
+              break;
+          }
+        },
+      ),
     );
   }
 }
