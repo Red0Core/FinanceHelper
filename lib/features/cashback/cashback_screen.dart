@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:finance_helper/data/database.dart';
 import 'package:finance_helper/data/models/cashback.dart';
 import 'package:finance_helper/data/models/card.dart';
@@ -48,25 +47,27 @@ class _CashbackScreenState extends State<CashbackScreen> {
                   controller: categoryController,
                   decoration: const InputDecoration(labelText: 'Категория'),
                 ),
+                const SizedBox(height: 12),
                 TextField(
                   controller: percentageController,
                   decoration: const InputDecoration(labelText: 'Процент кешбека'),
                   keyboardType: TextInputType.number,
                 ),
-                DropdownButton<CardModel?>(
-                  value: selectedCard,
-                  hint: const Text('Выберите карту'),
-                  onChanged: (newCard) {
-                    setStateDialog(() {
+                const SizedBox(height: 12),
+                DropdownMenu<CardModel?>(
+                  initialSelection: selectedCard,
+                  label: const Text('Выберите карту'),
+                  onSelected: (newCard) {
+                    setState(() {
                       selectedCard = newCard;
                     });
                   },
-                  items: _cards.map((card) {
-                    return DropdownMenuItem<CardModel?>(
+                  dropdownMenuEntries: _cards.map((card) {
+                    return DropdownMenuEntry<CardModel>(
                       value: card,
-                      child: Text(card.name),
+                      label: card.name,
                     );
-                  }).toList(),
+                  }).toList()
                 ),
               ],
             ),
@@ -127,20 +128,20 @@ class _CashbackScreenState extends State<CashbackScreen> {
                   decoration: const InputDecoration(labelText: 'Процент кешбека'),
                   keyboardType: TextInputType.number,
                 ),
-                DropdownButton<CardModel?>(
-                  value: selectedCard,
-                  hint: const Text('Выберите карту'),
-                  onChanged: (newCard) {
-                    setStateDialog(() {
+                DropdownMenu<CardModel>(
+                  initialSelection: selectedCard,
+                  label: const Text('Выберите карту'),
+                  onSelected: (newCard) {
+                    setState(() {
                       selectedCard = newCard;
                     });
                   },
-                  items: _cards.map((card) {
-                    return DropdownMenuItem<CardModel?>(
+                  dropdownMenuEntries: _cards.map((card) {
+                    return DropdownMenuEntry<CardModel>(
                       value: card,
-                      child: Text(card.name),
+                      label: card.name,
                     );
-                  }).toList(),
+                  }).toList()
                 ),
               ],
             ),
@@ -182,10 +183,6 @@ class _CashbackScreenState extends State<CashbackScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Кешбеки'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.goNamed('home'),
-        )
       ),
       body: ListView.builder(
         itemCount: _cashbacks.length,

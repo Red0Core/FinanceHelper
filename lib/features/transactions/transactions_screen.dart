@@ -85,11 +85,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
-        title: const Text('Транзакции'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.goNamed('home'),
-        ),
+        title: const Text('Транзакции')
       ),
       body: Column(
               children: [
@@ -99,41 +95,37 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        DropdownButton<CardModel?>(
-                          value: _selectedCard,
-                          hint: const Text('Выберите карту'),
-                          onChanged: (newCard) {
+                        DropdownMenu<CardModel>(
+                          width: MediaQuery.of(context).size.width / 2 - 24,
+                          initialSelection: _selectedCard,
+                          label: const Text('Карта'),
+                          onSelected: (newCard) {
                             setState(() {
-                            _selectedCard = newCard;
-                            _filterTransactions();
+                              _selectedCard = newCard;
+                              _filterTransactions();
                             });
                           },
-                          items: [
-                            const DropdownMenuItem<CardModel?>(
-                              value: null,
-                              child: Text('Все карты'),
-                            ),
-                            ..._cards.map((card) {
-                            return DropdownMenuItem<CardModel?>(
+                          dropdownMenuEntries: _cards.map((card) {
+                            return DropdownMenuEntry<CardModel>(
                               value: card,
-                              child: Text(card.name),
+                              label: card.name,
                             );
-                            }),
-                          ],
+                          }).toList()
                         ),
-                        const SizedBox(width: 16),
-                        DropdownButton<TransactionType>(
-                          value: _selectedTransactionType,
-                          onChanged: (TransactionType? newValue) {
+                        const SizedBox(width: 12),
+                        DropdownMenu<TransactionType>(
+                          width: MediaQuery.of(context).size.width / 2 - 24,
+                          initialSelection: _selectedTransactionType,
+                          onSelected: (TransactionType? newValue) {
                             setState(() {
                             _selectedTransactionType = newValue!;
                             _filterTransactions();
                             });
                           },
-                          items: [
-                            const DropdownMenuItem(value: TransactionType.all, child: Text('Все')),
-                            const DropdownMenuItem(value: TransactionType.income, child: Text('Доход')),
-                            const DropdownMenuItem(value: TransactionType.expense, child: Text('Расход')),
+                          dropdownMenuEntries: const [
+                            DropdownMenuEntry(value: TransactionType.all, label: 'Все'),
+                            DropdownMenuEntry(value: TransactionType.income, label: 'Доход'),
+                            DropdownMenuEntry(value: TransactionType.expense, label: 'Расход'),
                           ],
                         ),
                       ],
@@ -151,6 +143,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         child: ListTile(
                           title: Text(transaction.category, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                           subtitle: Text('${NumberFormat.currency(symbol: '₽').format(transaction.amount)} (${transaction.cardId}) • ${DateFormat("dd MMM yyy, HH:mm").format(transaction.date)}'),
+                          onTap: () => context.push('/transaction/${transaction.id}'),
                           trailing: SizedBox(
                             width: 100,
                             child: Row(

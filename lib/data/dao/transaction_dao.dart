@@ -67,4 +67,16 @@ class TransactionDao {
       return 0.0; // No transactions for the card
     }
   }
+
+  Future<TransactionModel?> getTransactionById(int id) async {
+    final List<Map<String, dynamic>> maps = await db.query(
+      'transactions',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    if (maps.isEmpty) {
+      return null;
+    }
+    return TransactionModel.fromMap(maps.first);
+  }
 }

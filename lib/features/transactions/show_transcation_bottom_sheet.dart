@@ -69,23 +69,22 @@ Future<void> showTransactionBottomSheet(
           ),
           const SizedBox(height: 12),
           StatefulBuilder(
-            builder: (context, setStateDialog) {
-              return DropdownButton<CardModel?>(
-                value: selectedCard,
-                hint: const Text('Выберите карту'),
-                onChanged: (newCard) {
+            builder: (context, setStateDialog) =>
+              DropdownMenu<CardModel>(
+                initialSelection: selectedCard,
+                label: const Text('Выберите карту'),
+                onSelected: (newCard) {
                   setStateDialog(() {
                     selectedCard = newCard;
                   });
                 },
-                items: cards.map((card) {
-                  return DropdownMenuItem<CardModel?>(
+                dropdownMenuEntries: cards.map((card) {
+                  return DropdownMenuEntry<CardModel>(
                     value: card,
-                    child: Text(card.name),
+                    label: card.name,
                   );
-                }).toList(),
-              );
-            }
+                }).toList()
+              ),
           ),
           const SizedBox(height: 12),
           StatefulBuilder(

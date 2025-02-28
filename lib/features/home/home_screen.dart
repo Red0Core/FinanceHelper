@@ -184,26 +184,6 @@ class HomeScreenState extends State<HomeScreen> {
         onPressed: _addCard,
         child: const Icon(Icons.add),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet), label: 'Кошелек'),
-          BottomNavigationBarItem(icon: Icon(Icons.receipt_long), label: 'Транзакции'),
-          BottomNavigationBarItem(icon: Icon(Icons.card_giftcard), label: 'Кешбек'),
-        ],
-        onTap: (index) {
-          switch (index) {
-            case 0:
-              context.goNamed('home');
-              break;
-            case 1:
-              context.goNamed('transactions');
-              break;
-            case 2:
-              context.goNamed('cashback');
-              break;
-          }
-        },
-      ),
     );
   }
 }
