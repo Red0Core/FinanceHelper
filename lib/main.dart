@@ -74,6 +74,15 @@ class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
   final PageController _pageController = PageController();
 
+  VoidCallback fabCallback = () {};
+
+  // Метод для обновления FAB callback, который можно передавать в дочерние экраны.
+  void updateFABCallback(VoidCallback callback) {
+    setState(() {
+      fabCallback = callback;
+    });
+  }
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -98,10 +107,10 @@ class _MainScreenState extends State<MainScreen> {
               _selectedIndex = index;
             });
           },
-          children: const [
-            HomeScreen(),
-            TransactionsScreen(),
-            CashbackScreen(),
+          children: [
+            HomeScreen(setFABCallback: updateFABCallback),
+            TransactionsScreen(setFABCallback: updateFABCallback),
+            CashbackScreen(setFABCallback: updateFABCallback),
           ],
         ),
       ),
@@ -114,6 +123,11 @@ class _MainScreenState extends State<MainScreen> {
           BottomNavigationBarItem(icon: Icon(Icons.card_giftcard), label: 'Кешбек'),
         ],
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: fabCallback,
+        child: const Icon(Icons.add),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat
     );
   }
 }

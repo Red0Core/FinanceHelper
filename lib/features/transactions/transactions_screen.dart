@@ -7,7 +7,8 @@ import 'package:finance_helper/data/database.dart';
 import 'show_transcation_bottom_sheet.dart';
 
 class TransactionsScreen extends StatefulWidget {
-  const TransactionsScreen({super.key});
+  final Function(VoidCallback callback) setFABCallback;
+  const TransactionsScreen({super.key, required this.setFABCallback});
 
   @override
   State<TransactionsScreen> createState() => _TransactionsScreenState();
@@ -23,6 +24,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.setFABCallback(() => showTransactionBottomSheet(
+            context,
+            null,
+            _cards,
+            _loadTransactions,
+          ));
+    });
     _loadData();
   }
 
@@ -176,15 +185,6 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 ),
               ],
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => showTransactionBottomSheet(
-          context,
-          null,
-          _cards,
-          _loadTransactions,
-        ),
-        child: const Icon(Icons.add),
-      ),
     );
   }
 }

@@ -5,7 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:finance_helper/data/models/card.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final Function(VoidCallback callback) setFABCallback;
+  const HomeScreen({super.key, required this.setFABCallback});
 
   @override
   HomeScreenState createState() => HomeScreenState();
@@ -20,6 +21,9 @@ class HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.setFABCallback(_addCard);
+    });
     _loadCards();
   }
 
@@ -180,10 +184,6 @@ class HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _addCard,
-        child: const Icon(Icons.add),
-      ),
     );
   }
 }

@@ -4,7 +4,8 @@ import 'package:finance_helper/data/models/cashback.dart';
 import 'package:finance_helper/data/models/card.dart';
 
 class CashbackScreen extends StatefulWidget {
-  const CashbackScreen({super.key});
+  final Function(VoidCallback callback) setFABCallback;
+  const CashbackScreen({super.key, required this.setFABCallback});
 
   @override
   State<CashbackScreen> createState() => _CashbackScreenState();
@@ -17,6 +18,9 @@ class _CashbackScreenState extends State<CashbackScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.setFABCallback(_addCashback);
+    });
     _loadData();
   }
 
@@ -210,10 +214,6 @@ class _CashbackScreenState extends State<CashbackScreen> {
             ),
           );
         },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _addCashback,
-        child: const Icon(Icons.add),
       ),
     );
   }
