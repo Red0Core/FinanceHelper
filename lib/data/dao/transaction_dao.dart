@@ -16,9 +16,8 @@ class TransactionDao {
 
   Future<List<TransactionModel>> getAllTransactions() async {
     final List<Map<String, dynamic>> maps = await db.query('transactions');
-    return List.generate(maps.length, (i) {
-      return TransactionModel.fromMap(maps[i]);
-    });
+
+    return maps.map((map) => TransactionModel.fromMap(map)).toList();
   }
 
   Future<void> updateTransaction(TransactionModel transaction) async {
@@ -30,7 +29,7 @@ class TransactionDao {
     );
   }
 
-  Future<void> deleteTransaction(int id) async {
+  Future<void> deleteTransactionById(int id) async {
     await db.delete(
       'transactions',
       where: 'id = ?',
@@ -47,25 +46,6 @@ class TransactionDao {
     return List.generate(maps.length, (i) {
       return TransactionModel.fromMap(maps[i]);
     });
-  }
-
-  Future<double> getCardBalance(int cardId) async {
-    final List<Map<String, dynamic>> result = await db.rawQuery('''
-      SELECT SUM(
-        CASE 
-          WHEN type = 'income' THEN amount 
-          ELSE -amount 
-        END
-      ) as balance
-      FROM transactions
-      WHERE card_id = ?
-    ''', [cardId]);
-
-    if (result.isNotEmpty && result[0]['balance'] != null) {
-      return result[0]['balance'] as double;
-    } else {
-      return 0.0; // No transactions for the card
-    }
   }
 
   Future<TransactionModel?> getTransactionById(int id) async {

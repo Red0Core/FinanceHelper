@@ -1,6 +1,6 @@
+import 'package:finance_helper/features/transactions/transaction_widget.dart';
+import 'package:finance_helper/features/transactions/transfer_widget.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import 'package:finance_helper/data/models/transaction.dart';
 import 'package:finance_helper/data/models/card.dart';
 import 'package:finance_helper/data/database.dart';
@@ -14,8 +14,8 @@ class TransactionsScreen extends StatefulWidget {
 }
 
 class _TransactionsScreenState extends State<TransactionsScreen> {
-  List<TransactionModel> _transactions = [];
-  List<TransactionModel> _filteredTransactions = [];
+  List<TransactionInterface> _combinedTransactions = [];
+  List<TransactionInterface> _transactions = [];
   List<CardModel> _cards = [];
   CardModel? _selectedCard;
   TransactionType _selectedTransactionType = TransactionType.all;
@@ -26,19 +26,21 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     _loadData();
   }
 
-  Future<void> _deleteTransaction(int id) async {
-    await AppDatabase.instance.transactionDao.deleteTransaction(id);
-    await _loadTransactions();
-  }
-
   Future<void> _loadTransactions() async {
     final transactions = await AppDatabase.instance.transactionDao.getAllTransactions();
+    final transfers = await AppDatabase.instance.transferDao.getAllTransfers();
 
-    transactions.sort((b, a) => a.date.compareTo(b.date));
+    // Для объединения в единый список можно пометить переводы специальным образом,
+    // либо использовать наследование, если хотите отображать их единообразно.
+    // Например, можно создать общий интерфейс или базовый класс, который расширяют оба типа.
+
+    // Здесь мы сортируем по дате (предполагается, что обе модели имеют поле date)
+    List<TransactionInterface> combined = [...transactions, ...transfers];
+    combined.sort((a, b) => b.date.compareTo(a.date));
 
     setState(() {
-      _transactions = transactions;
-      _filteredTransactions = _filterTransactionByCardAndType(_transactions, _selectedCard, _selectedTransactionType);
+      _transactions = combined;
+      _combinedTransactions = combined;
     });
   }
   
@@ -50,34 +52,42 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   Future<void> _loadData() async {
-    await _loadCards(); // Load Cards first to populate the dropdown
+    await _loadCards(); // Загружаем карты первыми, чтобы они были доступны для фильтрации
     await _loadTransactions();
   }
 
-  List<TransactionModel> _filterTransactionByCardAndType(
-    List<TransactionModel> transactions,
-    CardModel? card,
-    TransactionType transactionType
-  ) {
-    return transactions.where((t) {
-      // Фильтрация по карте, если карта выбрана
-      if (card != null && t.cardId != card.id) {
-        return false;
+  List<TransactionInterface> _filterTransactions() {
+    // Транзакции всегда отсортированы по дате, поэтому просто идет фильтрация по выбранным параметрам
+    
+    return _transactions.where((t) {
+      // Если выбрана карта, фильтруем по ней:
+      if (_selectedCard != null) {
+        if (t is TransactionModel) {
+          // Фильтрация для обычных транзакций
+          if (t.cardId != _selectedCard!.id) {
+            return false;
+          }
+        }
+        else if (t is TransferModel) {
+          // Для переводов показываем, если выбранная карта является исходной или целевой
+          if (_selectedCard!.id != t.sourceCardId &&
+              _selectedCard!.id != t.destinationCardId) {
+            return false;
+          }
+        }
       }
       
-      // Фильтрация по типу транзакции
-      if (transactionType != TransactionType.all && t.type != transactionType) {
-        return false;
+      // Фильтрация по типу транзакции для обычных транзакций.
+      // Для переводов можно либо игнорировать этот фильтр, либо добавить свою логику (пока не решил)
+      if (t is TransactionModel) {
+        if (_selectedTransactionType != TransactionType.all &&
+            t.type != _selectedTransactionType) {
+          return false;
+        }
       }
       
       return true;
     }).toList();
-  }
-
-  void _filterTransactions() {
-    setState(() { // Use setState here to trigger a rebuild of the ListView
-      _filteredTransactions = _filterTransactionByCardAndType(_transactions, _selectedCard, _selectedTransactionType);
-    });
   }
 
   @override
@@ -95,22 +105,25 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        DropdownMenu<CardModel>(
+                        DropdownMenu<CardModel?>(
                           width: MediaQuery.of(context).size.width / 2 - 24,
                           initialSelection: _selectedCard,
                           label: const Text('Карта'),
                           onSelected: (newCard) {
                             setState(() {
                               _selectedCard = newCard;
-                              _filterTransactions();
+                              _combinedTransactions = _filterTransactions();
                             });
                           },
-                          dropdownMenuEntries: _cards.map((card) {
-                            return DropdownMenuEntry<CardModel>(
-                              value: card,
-                              label: card.name,
-                            );
-                          }).toList()
+                          dropdownMenuEntries: [
+                            DropdownMenuEntry<CardModel?>(value: null, label: 'Все'),
+                            ..._cards.map((card) {
+                              return DropdownMenuEntry<CardModel>(
+                                value: card,
+                                label: card.name,
+                              );
+                            })
+                          ]
                         ),
                         const SizedBox(width: 12),
                         DropdownMenu<TransactionType>(
@@ -118,8 +131,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           initialSelection: _selectedTransactionType,
                           onSelected: (TransactionType? newValue) {
                             setState(() {
-                            _selectedTransactionType = newValue!;
-                            _filterTransactions();
+                              _selectedTransactionType = newValue!;
+                              _combinedTransactions = _filterTransactions();
                             });
                           },
                           dropdownMenuEntries: const [
@@ -133,40 +146,32 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                   ),
                 Expanded(
                   child: ListView.builder(
-                    itemCount: _filteredTransactions.length,
+                    itemCount: _combinedTransactions.length,
                     itemBuilder: (context, index) {
-                      final transaction = _filteredTransactions[index];
-                      return Card(
-                        key: ValueKey(transaction.id),
-                        elevation: 4,
-                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        child: ListTile(
-                          title: Text(transaction.category, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                          subtitle: Text('${NumberFormat.currency(symbol: '₽').format(transaction.amount)} (${transaction.cardId}) • ${DateFormat("dd MMM yyy, HH:mm").format(transaction.date)}'),
-                          onTap: () => context.push('/transaction/${transaction.id}'),
-                          trailing: SizedBox(
-                            width: 100,
-                            child: Row(
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.delete, color: Colors.red),
-                                  onPressed: () => confirmDeleteTransaction(context, transaction.id!, () => _deleteTransaction(transaction.id!)),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.edit, color: Colors.blue),
-                                  onPressed: () => showTransactionBottomSheet(
-                                    context,
-                                    transaction,
-                                    _cards,
-                                    _loadData,
-                                  )
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    },
+                      final item = _combinedTransactions[index];
+                      switch (item) {
+                        case TransferModel():
+                          return TransferWidget(
+                            transfer: item,
+                            cards: _cards,
+                            onDelete: () async {
+                              await AppDatabase.instance.transferDao.deleteTransferById(item.id!);
+                              await _loadTransactions();
+                            },
+                            onEdit: _loadTransactions,
+                          );
+                        case TransactionModel():
+                          return TransactionWidget(
+                            transaction: item,
+                            cards: _cards,
+                            onDelete: () async {
+                              await AppDatabase.instance.transactionDao.deleteTransactionById(item.id!);
+                              await _loadTransactions();
+                            },
+                            onEdit: _loadTransactions,
+                          );
+                      }
+                    }
                   ),
                 ),
               ],
@@ -176,7 +181,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           context,
           null,
           _cards,
-          _loadData,
+          _loadTransactions,
         ),
         child: const Icon(Icons.add),
       ),

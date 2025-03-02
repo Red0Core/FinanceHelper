@@ -17,7 +17,7 @@ class CardModel {
   int get hashCode => id.hashCode;
 
   Future<double> get balance async {
-    return await AppDatabase.instance.transactionDao.getCardBalance(id!);
+    return await AppDatabase.instance.cardDao.getCardBalance(id!);
   }
 
   Map<String, dynamic> toMap() {

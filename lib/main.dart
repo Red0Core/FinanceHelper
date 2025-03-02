@@ -1,8 +1,9 @@
 import 'package:finance_helper/data/database.dart';
 import 'package:finance_helper/features/cashback/cashback_screen.dart';
 import 'package:finance_helper/features/home/home_screen.dart';
-import 'package:finance_helper/features/transactions/transaction_screen_detail.dart';
+import 'package:finance_helper/features/transactions/transaction_detail_screen.dart';
 import 'package:finance_helper/features/transactions/transactions_screen.dart';
+import 'package:finance_helper/features/transactions/transfer_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -10,7 +11,7 @@ import 'package:intl/intl.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await AppDatabase.instance.database;
+  await AppDatabase.instance.recreateAndFillDatabaseWithTestData();
   await initializeDateFormatting('ru_RU', null);
   Intl.defaultLocale = 'ru_RU';
 
@@ -42,12 +43,22 @@ final GoRouter _router = GoRouter(
       builder: (context, state) => const MainScreen(),
     ),
     GoRoute(
+      path: '/transfer/:id',
+      builder: (context, state) {
+        final args = state.extra as TransferDetailArguments;
+        return TransferDetailScreen(
+          transfer: args.transfer,
+          sourceCard: args.sourceCard,
+          destinationCard: args.destinationCard,
+        );
+      },
+    ),
+    GoRoute(
       path: '/transaction/:id',
       builder: (context, state) {
-        final id = int.tryParse(state.pathParameters['id'] ?? '');
-        if (id == null) return const Scaffold(body: Center(child: Text("Ошибка: ID не найден")));
-        return TransactionDetailsScreen(transactionId: id);
-      },
+        final args = state.extra as TransactionDetailArguments;
+        return TransactionDetailScreen(transaction: args.transaction, cardName: args.cardName);
+      }
     ),
   ],
 );
