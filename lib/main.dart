@@ -12,6 +12,7 @@ import 'package:intl/intl.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AppDatabase.instance.recreateAndFillDatabaseWithTestData();
+  await AppDatabase.instance.setDefaultCategories();
   await initializeDateFormatting('ru_RU', null);
   Intl.defaultLocale = 'ru_RU';
 

@@ -1,9 +1,11 @@
 // lib/features/transactions/show_transaction_bottom_sheet.dart
+import 'package:finance_helper/features/transactions/show_category_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:finance_helper/data/database.dart';
 import 'package:finance_helper/data/models/transaction.dart';
 import 'package:finance_helper/data/models/card.dart';
+import 'package:finance_helper/data/models/category.dart';
 
 Future<void> showTransactionBottomSheet(
   BuildContext context,
@@ -14,8 +16,6 @@ Future<void> showTransactionBottomSheet(
   // Контроллеры
   final TextEditingController amountController =
       TextEditingController(text: transaction?.amount.toString() ?? '');
-  final TextEditingController categoryController =
-      TextEditingController(text: transaction is TransactionModel ? transaction.category : '');
   final TextEditingController descriptionController =
       TextEditingController(text: transaction?.description ?? '');
 
@@ -25,17 +25,37 @@ Future<void> showTransactionBottomSheet(
   TransactionType transactionType;
   DateTime? selectedDate = transaction?.date;
 
+  // Переменная для хранения выбранной категории
+  CategoryInterface? selectedCategory;
+  
+  // Инициализируем выбранную категорию, если это редактирование транзакции
+  if (transaction is TransactionModel) {
+    // Загружаем категорию из базы по имени/ID или используем заглушку
+    final categories = await AppDatabase.instance.categoryDao.getAllCategories();
+    final subcategories = await AppDatabase.instance.categoryDao.getAllSubcategories();
+    
+    // Сначала проверяем в подкатегориях (они имеют приоритет)
+    selectedCategory = [...subcategories, ...categories].firstWhere(
+      (s) => s.name == transaction.category,
+      orElse: () => CategoryModel(name: transaction.category)
+    );
+  }
+
   if (transaction == null) {
     transactionType = TransactionType.expense;
-  } else if (transaction is TransferModel) {
-    // Для перевода:
+  } 
+  else if (transaction is TransferModel) {
+    // Для перевода выбираем две карты
     selectedCard = cards.firstWhere((c) => c.id == transaction.sourceCardId);
     toCard = cards.firstWhere((c) => c.id == transaction.destinationCardId);
     transactionType = TransactionType.transfer;
-  } else if (transaction is TransactionModel) {
+  } 
+  else if (transaction is TransactionModel) {
+    // Для обычной транзакции выбираем одну карту
     selectedCard = cards.firstWhere((c) => c.id == transaction.cardId);
     transactionType = transaction.type;
-  } else {
+  } 
+  else {
     transactionType = TransactionType.expense;
   }
 
@@ -177,6 +197,7 @@ Future<void> showTransactionBottomSheet(
                           .toList(),
                     ),
                     const SizedBox(height: 12),
+                    // У перевода – выбор карты/куда
                     if (transactionType == TransactionType.transfer)
                       DropdownMenu<CardModel>(
                         initialSelection: toCard,
@@ -193,11 +214,91 @@ Future<void> showTransactionBottomSheet(
                                 ))
                             .toList(),
                       )
+                    // У транзакциии выбор категории
                     else
-                      TextField(
-                        controller: categoryController,
-                        decoration: const InputDecoration(labelText: 'Категория'),
-                      ),
+                      // Вариант 1: Улучшенный вид с карточкой и тенью
+                      InkWell(
+                        onTap: () async {
+                          final category = await showCategoryBottomSheet(
+                            context, 
+                            initialSelected: selectedCategory,
+                          );
+                          
+                          if (category != null) {
+                            setStateDialog(() {
+                              selectedCategory = category;
+                            });
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Card(
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Row(
+                              children: [
+                                if (selectedCategory != null && selectedCategory!.emoji != null)
+                                  Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context).colorScheme.primaryContainer,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      selectedCategory!.emoji!,
+                                      style: const TextStyle(fontSize: 24),
+                                    ),
+                                  )
+                                else
+                                  Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade200,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: const Icon(Icons.category, color: Colors.grey),
+                                  ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Категория',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey.shade600,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        selectedCategory != null
+                                            ? selectedCategory!.name
+                                            : 'Выберите категорию',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w500,
+                                          color: selectedCategory != null
+                                              ? Colors.black
+                                              : Colors.grey,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Icon(Icons.arrow_drop_down, color: Colors.grey.shade600),
+                              ],
+                            ),
+                          ),
+                        ),
+                      )
                   ],
                 );
               },
@@ -244,7 +345,7 @@ Future<void> showTransactionBottomSheet(
                         : TransactionModel(
                             id: transaction is TransactionModel ? transaction.id : null,
                             amount: parsedAmount,
-                            category: categoryController.text,
+                            category: selectedCategory?.name ?? '',
                             date: transaction?.date ?? selectedDate ?? DateTime.now(),
                             type: transactionType,
                             cardId: selectedCard!.id!,
