@@ -1,3 +1,5 @@
+import 'package:finance_helper/data/models/category.dart';
+import 'package:finance_helper/features/category/category_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:finance_helper/data/database.dart';
 import 'package:finance_helper/data/models/cashback.dart';
@@ -19,7 +21,7 @@ class _CashbackScreenState extends State<CashbackScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      widget.setFABCallback(_addCashback);
+      widget.setFABCallback(_showCashbackDialog);
     });
     _loadData();
   }
@@ -33,36 +35,61 @@ class _CashbackScreenState extends State<CashbackScreen> {
     });
   }
 
-  Future<void> _addCashback() async {
-    TextEditingController categoryController = TextEditingController();
-    TextEditingController percentageController = TextEditingController();
-    CardModel? selectedCard;
+  // Вспомогательный метод для получения объекта категории по имени
+  Future<CategoryInterface?> categoryFromName(String name) async {
+    final categories = await AppDatabase.instance.categoryDao.getAllCategories();
+    final subcategories = await AppDatabase.instance.categoryDao.getAllSubcategories();
+    
+    // Проверяем сначала в подкатегориях, затем в категориях
+    final allCategoriesAndSubcategories = [...subcategories, ...categories];
+    try {
+      return allCategoriesAndSubcategories.firstWhere((c) => c.name == name);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<void> _showCashbackDialog([CashbackModel? cashback]) async {
+    // Определяем, режим редактирования или добавления
+    final bool isEditing = cashback != null;
+    
+    // Инициализируем контроллеры с начальными значениями
+    TextEditingController percentageController = TextEditingController(
+      text: isEditing ? cashback.percentage.toString() : ''
+    );
+    
+    CategoryInterface? dialogSelectedCategory = 
+      isEditing ? await categoryFromName(cashback.category) : null;
+
+    // Выбираем карту (null для нового кешбэка или существующую для редактирования)
+    CardModel? selectedCard = 
+      isEditing 
+      ? _cards.firstWhere((c) => c.id == cashback.cardId)
+      : null;
 
     await showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setStateDialog) {
           return AlertDialog(
-            title: const Text('Добавить кешбек'),
+            title: Text(isEditing ? 'Редактировать кешбек' : 'Добавить кешбек'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(
-                  controller: categoryController,
-                  decoration: const InputDecoration(labelText: 'Категория'),
+                CategorySelector(
+                  selectedCategory: dialogSelectedCategory,
+                  onCategorySelected: (category) {
+                    setStateDialog(() {
+                      dialogSelectedCategory = category;
+                    });
+                  },
                 ),
                 const SizedBox(height: 12),
-                TextField(
-                  controller: percentageController,
-                  decoration: const InputDecoration(labelText: 'Процент кешбека'),
-                  keyboardType: TextInputType.number,
-                ),
-                const SizedBox(height: 12),
-                DropdownMenu<CardModel?>(
+                DropdownMenu<CardModel>(
                   initialSelection: selectedCard,
                   label: const Text('Выберите карту'),
                   onSelected: (newCard) {
-                    setState(() {
+                    setStateDialog(() {
                       selectedCard = newCard;
                     });
                   },
@@ -73,6 +100,12 @@ class _CashbackScreenState extends State<CashbackScreen> {
                     );
                   }).toList()
                 ),
+                TextField(
+                  controller: percentageController,
+                  decoration: const InputDecoration(labelText: 'Процент кешбека'),
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 12),
               ],
             ),
             actions: [
@@ -82,87 +115,32 @@ class _CashbackScreenState extends State<CashbackScreen> {
               ),
               ElevatedButton(
                 onPressed: () async {
-                  if (selectedCard == null || categoryController.text.isEmpty || percentageController.text.isEmpty) {
+                  // Валидация полей
+                  if (selectedCard == null || 
+                      dialogSelectedCategory == null || 
+                      percentageController.text.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Заполните все поля!')),
                     );
                     return;
                   }
 
-                  final newCashback = CashbackModel(
+                  final model = CashbackModel(
+                    id: isEditing ? cashback.id : null,
                     cardId: selectedCard!.id!,
-                    category: categoryController.text,
-                    percentage: double.tryParse(percentageController.text) ?? 0.0,
+                    category: dialogSelectedCategory!.name,
+                    percentage: double.tryParse(percentageController.text) ?? 
+                              (isEditing ? cashback.percentage : 0.0),
                   );
-                  await AppDatabase.instance.cashbackDao.insertCashback(newCashback);
-                  _loadData();
-                  if (context.mounted) {
-                    Navigator.pop(context);
+
+                  // Сохраняем или обновляем в зависимости от режима
+                  if (isEditing) {
+                    await AppDatabase.instance.cashbackDao.updateCashback(model);
+                  } else {
+                    await AppDatabase.instance.cashbackDao.insertCashback(model);
                   }
-                },
-                child: const Text('Сохранить'),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  Future<void> _editCashback(CashbackModel cashback) async {
-    TextEditingController categoryController = TextEditingController(text: cashback.category);
-    TextEditingController percentageController = TextEditingController(text: cashback.percentage.toString());
-    CardModel? selectedCard = _cards.firstWhere((c) => c.id == cashback.cardId);
-
-    await showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setStateDialog) {
-          return AlertDialog(
-            title: const Text('Редактировать кешбек'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: categoryController,
-                  decoration: const InputDecoration(labelText: 'Категория'),
-                ),
-                TextField(
-                  controller: percentageController,
-                  decoration: const InputDecoration(labelText: 'Процент кешбека'),
-                  keyboardType: TextInputType.number,
-                ),
-                DropdownMenu<CardModel>(
-                  initialSelection: selectedCard,
-                  label: const Text('Выберите карту'),
-                  onSelected: (newCard) {
-                    setState(() {
-                      selectedCard = newCard;
-                    });
-                  },
-                  dropdownMenuEntries: _cards.map((card) {
-                    return DropdownMenuEntry<CardModel>(
-                      value: card,
-                      label: card.name,
-                    );
-                  }).toList()
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Отмена'),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  final updatedCashback = CashbackModel(
-                    id: cashback.id,
-                    cardId: selectedCard!.id!,
-                    category: categoryController.text,
-                    percentage: double.tryParse(percentageController.text) ?? cashback.percentage,
-                  );
-                  await AppDatabase.instance.cashbackDao.updateCashback(updatedCashback);
+                  
+                  // Перезагружаем данные и закрываем диалог
                   _loadData();
                   if (context.mounted) {
                     Navigator.pop(context);
@@ -203,7 +181,7 @@ class _CashbackScreenState extends State<CashbackScreen> {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.edit, color: Colors.blue),
-                    onPressed: () => _editCashback(cashback),
+                    onPressed: () => _showCashbackDialog(cashback),
                   ),
                   IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),

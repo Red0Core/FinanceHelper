@@ -1,5 +1,5 @@
 // lib/features/transactions/show_transaction_bottom_sheet.dart
-import 'package:finance_helper/features/transactions/show_category_bottom_sheet.dart';
+import 'package:finance_helper/features/category/category_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:finance_helper/data/database.dart';
@@ -59,17 +59,45 @@ Future<void> showTransactionBottomSheet(
     transactionType = TransactionType.expense;
   }
 
-  Future<void> checkCashbackOptimization(TransactionModel txn) async {
-    final relevantCashbacks = (await AppDatabase.instance.cashbackDao.getAllCashbacks())
+  Future<void> checkCashbackOptimization(TransactionModel txn, BuildContext outerContext) async {
+    // Получаем все настройки кешбэка
+    final allCashbacks = await AppDatabase.instance.cashbackDao.getAllCashbacks();
+    
+    // Сначала ищем кешбэк для точного совпадения с категорией транзакции
+    var relevantCashbacks = allCashbacks
         .where((c) => c.category == txn.category)
         .toList();
+        
+    // Если кешбэк не найден напрямую, проверим, является ли категория транзакции подкатегорией
+    if (relevantCashbacks.isEmpty) {
+      // Получаем подкатегории, чтобы найти родительскую категорию
+      final subcategories = await AppDatabase.instance.categoryDao.getAllSubcategories();
+      final matchingSubcat = subcategories.where(
+        (s) => s.name == txn.category
+      );
+      
+      if (matchingSubcat.isNotEmpty) {
+        // Нашли подкатегорию, теперь ищем родительскую категорию
+        final categories = await AppDatabase.instance.categoryDao.getAllCategories();
+        final parentCategory = categories.firstWhere(
+          (c) => c.id == matchingSubcat.first.categoryId,
+        );
+        
+        // Ищем кешбэк для родительской категории
+        relevantCashbacks = allCashbacks
+            .where((c) => c.category == parentCategory.name)
+            .toList();
+    }
+    }
+
+    // Если нашли релевантные кешбэки (прямые или через родительскую категорию)
     if (relevantCashbacks.isNotEmpty) {
       final bestCashback =
           relevantCashbacks.reduce((a, b) => a.percentage > b.percentage ? a : b);
       if (bestCashback.cardId != txn.cardId) {
         final betterCard = cards.firstWhere((c) => c.id == bestCashback.cardId);
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+        if (outerContext.mounted) {
+          ScaffoldMessenger.of(outerContext).showSnackBar(
             SnackBar(
               content: Text(
                   'Лучше использовать карту ${betterCard.name} для этой транзакции (кешбек ${bestCashback.percentage}%)'),
@@ -216,80 +244,13 @@ Future<void> showTransactionBottomSheet(
                       )
                     // У транзакциии выбор категории
                     else
-                      // Вариант 1: Улучшенный вид с карточкой и тенью
-                      InkWell(
-                        onTap: () async {
-                          final category = await showCategoryBottomSheet(
-                            context, 
-                            initialSelected: selectedCategory,
-                          );
-                          
-                          if (category != null) {
-                            setStateDialog(() {
-                              selectedCategory = category;
-                            });
-                          }
+                      CategorySelector(
+                        selectedCategory: selectedCategory,
+                        onCategorySelected: (category) {
+                          setStateDialog(() {
+                            selectedCategory = category;
+                          });
                         },
-                        borderRadius: BorderRadius.circular(12),
-                        child: Card(
-                          elevation: 2,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Row(
-                              children: [
-                                if (selectedCategory != null && selectedCategory!.emoji != null)
-                                  Container(
-                                    width: 40,
-                                    height: 40,
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      selectedCategory!.emoji!,
-                                      style: const TextStyle(fontSize: 24),
-                                    ),
-                                  )
-                                else
-                                  Container(
-                                    width: 40,
-                                    height: 40,
-                                    alignment: Alignment.center,
-                                    child: const Icon(Icons.category, color: Colors.grey),
-                                  ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Категория',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey.shade600,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        selectedCategory != null
-                                            ? selectedCategory!.name
-                                            : 'Выберите категорию',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w500,
-                                          color: selectedCategory != null
-                                              ? Colors.black
-                                              : Colors.grey,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Icon(Icons.arrow_drop_down, color: Colors.grey.shade600),
-                              ],
-                            ),
-                          ),
-                        ),
                       )
                   ],
                 );
@@ -309,6 +270,7 @@ Future<void> showTransactionBottomSheet(
                   child: const Text('Отмена'),
                 ),
                 ElevatedButton(
+                  child: const Text('Сохранить'),
                   onPressed: () async {
                     if (selectedCard == null) {
                       handleValidationError('Выберите карту перед добавлением транзакции!');
@@ -378,11 +340,10 @@ Future<void> showTransactionBottomSheet(
                     if (context.mounted) {
                       Navigator.pop(context);
                       if (newTransaction is TransactionModel) {
-                        checkCashbackOptimization(newTransaction);
+                        checkCashbackOptimization(newTransaction, context);
                       }
                     }
                   },
-                  child: const Text('Сохранить'),
                 )
               ],
             ),
