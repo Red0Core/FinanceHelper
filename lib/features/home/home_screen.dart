@@ -1,5 +1,6 @@
 import 'package:finance_helper/data/database.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:finance_helper/data/models/card.dart';
@@ -159,23 +160,34 @@ class HomeScreenState extends State<HomeScreen> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: ListTile(
-                      title: Text(card.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                      subtitle: Text('Баланс: ${NumberFormat.currency(symbol: '₽').format(_cardBalances[card.id] ?? 0.0)}'),
-                      trailing: SizedBox(
-                        width: 100,
-                        child: Row(
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () => _deleteCard(card.id!),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.blue),
-                              onPressed: () => _editCard(card),
-                            ),
-                          ],
-                        ),
+                    child: Slidable(
+                      key: ValueKey(card.id),
+                      // Панель для свайпа влево 
+                      endActionPane: ActionPane(
+                        motion: const DrawerMotion(),
+                        children: [          
+                          SlidableAction(
+                            onPressed: (context) async => await _editCard(card),
+                            backgroundColor: Colors.blue,
+                            foregroundColor: Colors.white,
+                            icon: Icons.edit,
+                            label: 'Edit',
+                            autoClose: true,
+                          ),
+                          SlidableAction(
+                            onPressed: (context) async => await _deleteCard(card.id!),
+                            backgroundColor: Colors.redAccent,
+                            foregroundColor: Colors.white,
+                            icon: Icons.delete,
+                            label: 'Delete',
+                            borderRadius: BorderRadius.horizontal(right: Radius.circular(16)),
+                            autoClose: true,
+                          ),
+                        ],
+                      ),
+                      child: ListTile(
+                        title: Text(card.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        subtitle: Text('Баланс: ${NumberFormat.currency(symbol: '₽').format(_cardBalances[card.id] ?? 0.0)}'),
                       ),
                     ),
                   );

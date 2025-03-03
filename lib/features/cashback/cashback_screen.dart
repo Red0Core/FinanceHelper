@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:finance_helper/data/database.dart';
 import 'package:finance_helper/data/models/cashback.dart';
 import 'package:finance_helper/data/models/card.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 
 class CashbackScreen extends StatefulWidget {
   final Function(VoidCallback callback) setFABCallback;
@@ -177,30 +178,43 @@ class _CashbackScreenState extends State<CashbackScreen> {
           final card = _cards.firstWhere((c) => c.id == cashback.cardId, orElse: () => CardModel(id: -1, name: 'Неизвестная карта'));
           return Card(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: ListTile(
-              leading: Container(
-                width: 40,
-                height: 40,
-                alignment: Alignment.center,
-                child: Text(
-                  category.emoji!,
-                  style: const TextStyle(fontSize: 24),
-                ),
-              ),
-              title: Text('${category.name} - ${cashback.percentage}%'),
-              subtitle: Text('Карта: ${card.name}'),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.edit, color: Colors.blue),
-                    onPressed: () => _showCashbackDialog(cashback),
+            child: Slidable(
+              key: ValueKey(cashback.id),
+              // Панель для свайпа влево 
+              endActionPane: ActionPane(
+                motion: const DrawerMotion(),
+                children: [          
+                  SlidableAction(
+                    onPressed: (context) async => await _showCashbackDialog(cashback),
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    icon: Icons.edit,
+                    label: 'Edit',
+                    autoClose: true,
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () => _deleteCashback(cashback.id!),
+                  SlidableAction(
+                    onPressed: (context) async => await _deleteCashback(cashback.id!),
+                    backgroundColor: Colors.redAccent,
+                    foregroundColor: Colors.white,
+                    icon: Icons.delete,
+                    label: 'Delete',
+                    borderRadius: BorderRadius.horizontal(right: Radius.circular(16)),
+                    autoClose: true,
                   ),
                 ],
+              ),
+              child: ListTile(
+                leading: Container(
+                  width: 40,
+                  height: 40,
+                  alignment: Alignment.center,
+                  child: Text(
+                    category.emoji!,
+                    style: const TextStyle(fontSize: 24),
+                  ),
+                ),
+                title: Text('${category.name} - ${cashback.percentage}%'),
+                subtitle: Text('Карта: ${card.name}'),
               ),
             ),
           );
