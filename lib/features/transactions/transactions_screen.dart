@@ -152,6 +152,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         ),
                         const SizedBox(width: 12),
                         DropdownMenu<TransactionType>(
+                          label: const Text('Тип'),
                           width: MediaQuery.of(context).size.width / 2 - 24,
                           initialSelection: _selectedTransactionType,
                           onSelected: (TransactionType? newValue) {
