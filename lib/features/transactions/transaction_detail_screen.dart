@@ -1,3 +1,4 @@
+import 'package:finance_helper/data/models/category.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:finance_helper/data/models/transaction.dart';
@@ -6,21 +7,25 @@ import 'package:go_router/go_router.dart';
 class TransactionDetailArguments {
   final TransactionModel transaction;
   final String cardName;
+  final CategoryInterface? category;
 
   TransactionDetailArguments({
     required this.transaction,
     required this.cardName,
+    this.category
   });
 }
 
 class TransactionDetailScreen extends StatelessWidget {
   final TransactionModel transaction;
   final String cardName;
+  final CategoryInterface? category;
 
   const TransactionDetailScreen({
     super.key,
     required this.transaction,
     required this.cardName,
+    this.category
   });
 
   @override
@@ -45,7 +50,7 @@ class TransactionDetailScreen extends StatelessWidget {
             children: [
               // Заголовок с категорией транзакции
               Text(
-                transaction.category,
+                category?.emoji != null ? '${category!.emoji} ${category!.name}' : transaction.category,
                 style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),

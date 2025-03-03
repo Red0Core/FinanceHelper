@@ -1,3 +1,4 @@
+import 'package:finance_helper/data/models/category.dart';
 import 'package:finance_helper/features/transactions/transaction_widget.dart';
 import 'package:finance_helper/features/transactions/transfer_widget.dart';
 import 'package:flutter/material.dart';
@@ -20,6 +21,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   List<CardModel> _cards = [];
   CardModel? _selectedCard;
   TransactionType _selectedTransactionType = TransactionType.all;
+  List<CategoryInterface?> _categories = [];
 
   @override
   void initState() {
@@ -60,9 +62,18 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     });
   }
 
+  Future<void> _loadCategories() async {
+    final categories = await AppDatabase.instance.categoryDao.getAllCategories();
+    final subcategories = await AppDatabase.instance.categoryDao.getAllSubcategories();
+    setState(() {
+      _categories = [...categories, ...subcategories];
+    });
+  }
+
   Future<void> _loadData() async {
     await _loadCards(); // Загружаем карты первыми, чтобы они были доступны для фильтрации
     await _loadTransactions();
+    await _loadCategories();
   }
 
   List<TransactionInterface> _filterTransactions() {
@@ -178,6 +189,10 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                               await _loadTransactions();
                             },
                             onEdit: _loadTransactions,
+                            category: _categories.firstWhere(
+                              (c) => c != null && c.name == item.category,
+                              orElse: () => CategoryModel(name: item.category, emoji: '📋'),
+                            ),
                           );
                       }
                     }

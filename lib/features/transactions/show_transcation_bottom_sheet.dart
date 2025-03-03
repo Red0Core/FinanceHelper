@@ -244,10 +244,6 @@ Future<void> showTransactionBottomSheet(
                                   Container(
                                     width: 40,
                                     height: 40,
-                                    decoration: BoxDecoration(
-                                      color: Theme.of(context).colorScheme.primaryContainer,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
                                     alignment: Alignment.center,
                                     child: Text(
                                       selectedCategory!.emoji!,
@@ -258,10 +254,6 @@ Future<void> showTransactionBottomSheet(
                                   Container(
                                     width: 40,
                                     height: 40,
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.shade200,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
                                     alignment: Alignment.center,
                                     child: const Icon(Icons.category, color: Colors.grey),
                                   ),

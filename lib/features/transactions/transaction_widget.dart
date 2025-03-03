@@ -1,3 +1,4 @@
+import 'package:finance_helper/data/models/category.dart';
 import 'package:finance_helper/features/transactions/show_transcation_bottom_sheet.dart';
 import 'package:finance_helper/features/transactions/transaction_detail_screen.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +14,7 @@ class TransactionWidget extends StatelessWidget {
   final List<CardModel> cards;
   final Future<void> Function() onDelete;
   final Future<void> Function() onEdit;
+  final CategoryInterface? category;
 
   const TransactionWidget({
     super.key,
@@ -20,6 +22,7 @@ class TransactionWidget extends StatelessWidget {
     required this.cards,
     required this.onEdit,
     required this.onDelete,
+    this.category
   });
 
   @override
@@ -59,19 +62,31 @@ class TransactionWidget extends StatelessWidget {
           ],
         ),
         child: ListTile(
+          leading: Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            child: Text(
+              category?.emoji ?? '📋',
+              style: const TextStyle(fontSize: 24),
+            ),
+          ),
           title: Text(transaction.category, style: const TextStyle(fontWeight: FontWeight.bold)),
           subtitle: Text(
-              '${NumberFormat.currency(symbol: '₽').format(transaction.amount)} • '
-              '${card.name} • '
+              '${card.name}\n'
               '${DateFormat("dd MMM yyyy").format(transaction.date)}'
           ),
-          trailing: Icon(
-            transaction.type == TransactionType.expense ? Icons.arrow_downward : Icons.arrow_upward,
-            color: transaction.type == TransactionType.expense ? Colors.red : Colors.green,
+          trailing: Text(
+            "${transaction.type == TransactionType.expense ? '-' : '+'}${NumberFormat.currency(symbol: '₽').format(transaction.amount)}",
+            style: TextStyle(
+              color: transaction.type == TransactionType.expense ? Colors.red : Colors.green,
+              fontWeight: FontWeight.bold,
+              fontSize: 16
+            ),
           ),
           onTap: () => context.push(
             '/transaction/${transaction.id}',
-            extra: TransactionDetailArguments(transaction: transaction, cardName: card.name),
+            extra: TransactionDetailArguments(transaction: transaction, cardName: card.name, category: category),
           ),
         ),
       )

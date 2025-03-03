@@ -44,7 +44,7 @@ class TransferDetailScreen extends StatelessWidget {
             children: [
               Text(
                 'Перевод',
-                style: Theme.of(context).textTheme.headlineMedium,
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Text(

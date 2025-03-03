@@ -11,8 +11,9 @@ import 'package:intl/intl.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await AppDatabase.instance.recreateAndFillDatabaseWithTestData();
-  await AppDatabase.instance.setDefaultCategories();
+  await AppDatabase.instance.database;
+  await AppDatabase.instance.resetDatabase();
+  await AppDatabase.instance.fillWithTestData();
   await initializeDateFormatting('ru_RU', null);
   Intl.defaultLocale = 'ru_RU';
 
@@ -58,7 +59,7 @@ final GoRouter _router = GoRouter(
       path: '/transaction/:id',
       builder: (context, state) {
         final args = state.extra as TransactionDetailArguments;
-        return TransactionDetailScreen(transaction: args.transaction, cardName: args.cardName);
+        return TransactionDetailScreen(transaction: args.transaction, cardName: args.cardName, category: args.category);
       }
     ),
   ],

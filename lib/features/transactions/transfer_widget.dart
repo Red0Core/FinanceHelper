@@ -60,12 +60,24 @@ class TransferWidget extends StatelessWidget {
           ],
         ),
         child: ListTile(
-            leading: const Icon(Icons.compare_arrows, color: Colors.blue),
+            leading: Container(
+              width: 40,
+              height: 40,
+              alignment: Alignment.center,
+              child: const Icon(
+                Icons.compare_arrows,
+                color: Colors.blue,
+                size: 36,
+              ),
+            ),
             title: const Text('Перевод', style: TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text('${sourceCard.name} → ${destCard.name}'),
+            subtitle: Text(
+              '${sourceCard.name} → ${destCard.name}\n'
+              '${DateFormat("dd MMM yyyy").format(transfer.date)}'
+            ),
             trailing: Text(
               NumberFormat.currency(symbol: '₽').format(transfer.amount),
-              style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+              style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 16),
             ),
             onTap: () => context.push(
               '/transfer/${transfer.id}',

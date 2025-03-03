@@ -1,5 +1,6 @@
 import 'package:finance_helper/data/dao/category_dao.dart';
 import 'package:finance_helper/data/dao/transfer_dao.dart';
+import 'package:finance_helper/data/models/cashback.dart';
 import 'package:finance_helper/data/models/category.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
@@ -146,12 +147,30 @@ class AppDatabase {
     db.close();
   }
 
-  Future<void> recreateAndFillDatabaseWithTestData() async {
-    final dbPath = await getDatabasesPath();
-    final path = p.join(dbPath, 'finance.db');
-    await deleteDatabase(path);
-    _database = null;
-    await database;
+  Future<void> resetDatabase() async {
+    final db = await database;
+    // Отключаем внешние ключи на время операции для избежания ошибок при удалении
+    await db.execute('PRAGMA foreign_keys = OFF');
+    
+    // Очищаем все таблицы (удаляем данные)
+    await db.execute('DELETE FROM subcategories');
+    await db.execute('DELETE FROM categories');
+    await db.execute('DELETE FROM cashback');
+    await db.execute('DELETE FROM financial_goals');
+    await db.execute('DELETE FROM subscriptions');
+    await db.execute('DELETE FROM transfers');
+    await db.execute('DELETE FROM transactions');
+    await db.execute('DELETE FROM cards');
+    
+    // Сбрасываем auto-increment счетчики
+    await db.execute('DELETE FROM sqlite_sequence');
+    
+    // Включаем внешние ключи обратно
+    await db.execute('PRAGMA foreign_keys = ON');
+  }
+
+  Future<void> fillWithTestData() async {
+    await setDefaultCategories();
 
     final cards = [
       CardModel(name: 'Сбербанк'),
@@ -161,24 +180,25 @@ class AppDatabase {
     ];
 
     for (final card in cards) {
-      await AppDatabase.instance.cardDao.insertCard(card);
+      await instance.cardDao.insertCard(card);
     }
 
-    final insertedCards = await AppDatabase.instance.cardDao.getAllCards();
+    final insertedCards = await instance.cardDao.getAllCards();
     final random = Random();
 
-    final categories = ['Еда', 'Транспорт', 'Развлечения', 'Зарплата', 'Одежда', 'Дом', 'Подарки'];
+    final categories = await instance.categoryDao.getAllSubcategories();
     final types = [TransactionType.expense, TransactionType.income, TransactionType.transfer];
 
     final now = DateTime.now();
 
     for (int i = 0; i < 20; i++) {
+      // Генерация случайной транзакции
       final type = types[random.nextInt(types.length)];
       final cardId = insertedCards[random.nextInt(insertedCards.length)].id!;
       final amount = double.parse((random.nextDouble() * 1000).toStringAsFixed(2));
       final date = now.subtract(Duration(days: random.nextInt(30)));
       if (type == TransactionType.transfer) {
-        await AppDatabase.instance.transferDao.insertTransfer(
+        await instance.transferDao.insertTransfer(
             TransferModel(
               amount: amount,
               date: date,
@@ -188,10 +208,10 @@ class AppDatabase {
         );
       }
       else {
-        await AppDatabase.instance.transactionDao.insertTransaction(
+        await instance.transactionDao.insertTransaction(
             TransactionModel(
               amount: amount,
-              category: categories[random.nextInt(categories.length)],
+              category: categories[random.nextInt(categories.length)].name,
               date: date,
               type: type,
               cardId: cardId,
@@ -199,6 +219,32 @@ class AppDatabase {
         );
       }
     }
+    
+    // Генерация рандомного кешбека
+    for (final card in insertedCards) {
+      // Выбираем случайное количество категорий для кешбека (от 1 до 5)
+      final cashbackCount = 1 + random.nextInt(5);
+      
+      // Перемешиваем категории, чтобы выбрать случайные
+      final shuffledCategories = List<CategoryModel>.from(await instance.categoryDao.getAllCategories())..shuffle(random);
+      
+      // Добавляем кешбек для выбранных категорий
+      for (int i = 0; i < cashbackCount && i < shuffledCategories.length; i++) {
+        // Генерируем случайный процент кешбека от 0.5% до 15%
+        final percentage = 0.5 + random.nextDouble() * 14.5;
+        // Округляем до одного десятичного знака
+        final roundedPercentage = double.parse(percentage.toStringAsFixed(1));
+        
+        await instance.cashbackDao.insertCashback(
+          CashbackModel(
+            cardId: card.id!,
+            category: shuffledCategories[i].name,
+            percentage: roundedPercentage,
+          )
+        );
+      }
+    }
+
   }
 
   Future<void> setDefaultCategories() async {
