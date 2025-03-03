@@ -16,6 +16,7 @@ class CashbackScreen extends StatefulWidget {
 class _CashbackScreenState extends State<CashbackScreen> {
   List<CashbackModel> _cashbacks = [];
   List<CardModel> _cards = [];
+  List<CategoryInterface> _allCategories = [];
 
   @override
   void initState() {
@@ -29,23 +30,25 @@ class _CashbackScreenState extends State<CashbackScreen> {
   Future<void> _loadData() async {
     final cashbacks = await AppDatabase.instance.cashbackDao.getAllCashbacks();
     final cards = await AppDatabase.instance.cardDao.getAllCards();
+    // Загружаем все категории и подкатегории
+    final categories = await AppDatabase.instance.categoryDao.getAllCategories();
+    final subcategories = await AppDatabase.instance.categoryDao.getAllSubcategories();
+
+    if (!mounted) return;
     setState(() {
       _cashbacks = cashbacks;
       _cards = cards;
+      _allCategories = [...subcategories, ...categories];
     });
   }
 
-  // Вспомогательный метод для получения объекта категории по имени
-  Future<CategoryInterface?> categoryFromName(String name) async {
-    final categories = await AppDatabase.instance.categoryDao.getAllCategories();
-    final subcategories = await AppDatabase.instance.categoryDao.getAllSubcategories();
-    
-    // Проверяем сначала в подкатегориях, затем в категориях
-    final allCategoriesAndSubcategories = [...subcategories, ...categories];
+  // Получаем категорию по имени (синхронная версия - без обращения к БД)
+  CategoryInterface getCategoryByName(String name) {
     try {
-      return allCategoriesAndSubcategories.firstWhere((c) => c.name == name);
+      return _allCategories.firstWhere((c) => c.name == name);
     } catch (e) {
-      return null;
+      // Если категория не найдена, создаем временную
+      return CategoryModel(name: name, emoji: '📋');
     }
   }
 
@@ -59,7 +62,7 @@ class _CashbackScreenState extends State<CashbackScreen> {
     );
     
     CategoryInterface? dialogSelectedCategory = 
-      isEditing ? await categoryFromName(cashback.category) : null;
+      isEditing ? getCategoryByName(cashback.category) : null;
 
     // Выбираем карту (null для нового кешбэка или существующую для редактирования)
     CardModel? selectedCard = 
@@ -170,11 +173,21 @@ class _CashbackScreenState extends State<CashbackScreen> {
         itemCount: _cashbacks.length,
         itemBuilder: (context, index) {
           final cashback = _cashbacks[index];
+          final category = getCategoryByName(cashback.category);
           final card = _cards.firstWhere((c) => c.id == cashback.cardId, orElse: () => CardModel(id: -1, name: 'Неизвестная карта'));
           return Card(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: ListTile(
-              title: Text('${cashback.category} - ${cashback.percentage}%'),
+              leading: Container(
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                child: Text(
+                  category.emoji!,
+                  style: const TextStyle(fontSize: 24),
+                ),
+              ),
+              title: Text('${category.name} - ${cashback.percentage}%'),
               subtitle: Text('Карта: ${card.name}'),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,

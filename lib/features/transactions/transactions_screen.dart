@@ -49,6 +49,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     List<TransactionInterface> combined = [...transactions, ...transfers];
     combined.sort((a, b) => b.date.compareTo(a.date));
 
+    if (!mounted) return;
     setState(() {
       _transactions = combined;
       _combinedTransactions = combined;
@@ -57,6 +58,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   
   Future<void> _loadCards() async {
     final cards = await AppDatabase.instance.cardDao.getAllCards();
+
+    if (!mounted) return;
     setState(() {
       _cards = cards;
     });
@@ -65,6 +68,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   Future<void> _loadCategories() async {
     final categories = await AppDatabase.instance.categoryDao.getAllCategories();
     final subcategories = await AppDatabase.instance.categoryDao.getAllSubcategories();
+
+    if (!mounted) return;
     setState(() {
       _categories = [...categories, ...subcategories];
     });
