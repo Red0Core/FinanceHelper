@@ -23,6 +23,8 @@ Future<CategoryInterface?> showCategoryBottomSheet(
   if (initialSelected is SubcategoryModel) {
     initialExpandedCategoryId = initialSelected.categoryId;
   }
+
+  if (!context.mounted) return null;
   return showModalBottomSheet<CategoryInterface>(
     context: context,
     isScrollControlled: true,

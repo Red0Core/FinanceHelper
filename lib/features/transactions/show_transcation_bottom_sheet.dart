@@ -116,6 +116,7 @@ Future<void> showTransactionBottomSheet(
     );
   }
 
+  if (!context.mounted) return;
   await showModalBottomSheet(
     context: context,
     isScrollControlled: true,
